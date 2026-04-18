@@ -827,6 +827,14 @@ Reset Everything</button>
                 <p style="color: #8B5E3C; font-style: italic;">Select a month to see your favorites!</p>
             </div>
         </div>
+            <!-- TEMP / PERMANENT: Import Monthly Favorites CSV -->
+            <div style="margin-top: 25px; border-top: 1px solid #eee; padding-top: 10px; text-align: center;">
+                <button onclick="document.getElementById('favCsvInput').click()" 
+                        style="background: none; border: none; color: #933b5b; text-decoration: underline; cursor: pointer; font-size: 13px;">
+                    📥 Import myfavorites.csv
+                </button>
+                <input type="file" id="favCsvInput" accept=".csv" style="display: none;">
+            </div>
     </div>
     <!-- MONTHLY MISSION INLINE BOX (Only shows if favorites are missing) -->
     <div id="missionInlineContainer" style="display: none; margin-top: 30px; background-color: #fff9f9; padding: 30px; border: 3px dashed #933b5b; border-radius: 25px; max-width: 700px; margin-left: auto; margin-right: auto; text-align: center;">
@@ -1355,6 +1363,38 @@ if (tabId === 'assistant-tab') {
             };
             reader.readAsText(file);
         });
+// UPDATED IMPORT: Now checks for duplicates!
+document.getElementById('csvFileInput').addEventListener('change', function(e) {
+    // ...existing library import code...
+    reader.readAsText(file);
+});
+
+// IMPORT MAGIC: Reads your myfavorites.csv file for Monthly Winners
+document.getElementById('favCsvInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const csvText = event.target.result;
+        const rows = csvText.split('\n').filter(r => r.trim() !== '');
+        const dataRows = rows.slice(1); // Skip the header row
+
+        dataRows.forEach(row => {
+            if (!row.trim()) return;
+            const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, ''));
+
+            const [year, month, title, author, isbn, rating] = cols;
+            const winnerData = { title, author, isbn, rating };
+            localStorage.setItem(`winner_${year}_${month}`, JSON.stringify(winnerData));
+        });
+
+        alert("Favorites imported successfully!");
+        displaySavedMonthlyWinners();
+    };
+    reader.readAsText(file);
+});
+
         async function displayRatedBooks() {
             const container = document.getElementById('bookCoversContainer');
             container.innerHTML = '<p style="color:#443024;">⌛ Loading your favorites...</p>';
