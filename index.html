@@ -1,0 +1,3240 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>My Book Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Delius&display=swap" rel="stylesheet">
+   <script src="https://unpkg.com/html5-qrcode"></script>
+
+    
+    <style>
+        * { font-family: 'Delius', cursive !important; box-sizing: border-box; color: #443024; }
+        body { padding: 30px; background-color: #f6eeee; margin: 0; }
+        
+        .add-book-container { display: flex; gap: 15px; align-items: center; margin-bottom: 40px; width: fit-content; }
+        
+        .input-group { position: relative; width: 250px; }
+        .input-group input { 
+            width: 100%; height: 45px; padding: 10px; border: 2px solid #443024; 
+            border-radius: 8px; background: transparent !important; outline: none; font-size: 16px; 
+        }
+
+        .input-group label {
+            position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+            background-color: #f6eeee; padding: 0 5px; transition: 0.2s ease all;
+            pointer-events: none; line-height: 1; z-index: 1;
+        }
+
+        .input-group input:focus ~ label,
+        .input-group input:not(:placeholder-shown) ~ label {
+            top: 0; font-size: 13px; font-weight: bold;
+        }
+
+        #addBtn {
+            background-color: #443024; color: white; border: none; height: 45px;
+            padding: 0 20px; border-radius: 8px; cursor: pointer; font-size: 16px;
+        }
+
+        table { border-collapse: separate; border-spacing: 0 10px; width: 100%; }
+        th { padding: 12px; text-align: left; }
+            /* The base look for every cell */
+    td { 
+        padding: 10px; 
+        background-color: white; 
+        border-top: 1px solid #eee;
+        border-bottom: 1px solid #eee;
+    }
+
+    /* Floating box effect: rounding the ends of the row */
+    td:first-child { border-radius: 12px 0 0 12px; border-left: 1px solid #eee; }
+    td:last-child { border-radius: 0 12px 12px 0; border-right: 1px solid #eee; }
+
+    /* Highlights for different statuses */
+    .row-read td { 
+        background-color: #eaf1e4 !important; /* Lighter shade of #d3dfca */
+    }
+    .row-currently-reading td { 
+        background-color: #fff0ed !important; /* Lighter shade of #ffe8e1 */
+    }
+
+    /* Make the table inputs blend into the row color */
+    td input, td select {
+        background-color: rgba(255, 255, 255, 0.5) !important;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+        
+        td input, td select { border: 1px solid #ddd; padding: 6px; border-radius: 5px; width: 100%; }
+        .star-rating { white-space: nowrap; display: flex; align-items: center; }
+        .footer-btns { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; }
+        .footer-btns button { padding: 10px 15px; border-radius: 5px; cursor: pointer; border: 1px solid #443024; background: white; margin-right: 10px; }
+
+        /* This styles the container holding the buttons */
+    .tab-bar { 
+        display: flex; 
+        gap: 12px; 
+        margin-bottom: 30px; 
+    }
+    
+    /* This styles the buttons themselves */
+    .tab-btn { 
+        background-color: #ec9c9d; /* The pink color you asked for */
+        color: #443025;           /* The dark brown text you asked for */
+        border: none; 
+        font-size: 16px; 
+        cursor: pointer; 
+        padding: 10px 25px; 
+        border-radius: 15px;      /* Nice rounded corners like the Add button */
+        transition: all 0.2s ease;
+        opacity: 0.6;             /* Makes unselected buttons look slightly faded */
+        font-weight: bold;
+        height: 45px;
+    }
+    
+    /* This makes the button you are currently on look solid and stand out */
+    .tab-btn.active { 
+        opacity: 1; 
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        border: 2px solid #443025; /* A thin brown border to show it's active */
+    }
+
+
+    .stat-box { 
+        border-radius: 20px; 
+        padding: 30px; 
+        width: 220px; 
+        text-align: center;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    }
+
+    /* Box 1: Want to Read */
+    .box-want { background-color: #eb9d9d; border: 4px solid #ab7e67; }
+    /* Box 2: Currently Reading */
+    .box-current { background-color: #ab7e67; border: 4px solid #f2cfcb; }
+    /* Box 3: Read */
+    .box-read { background-color: #f2cfcb; border: 4px solid #eb9d9d; }
+    /* Box 4: DNF */
+    .box-dnf { background-color: #eb9d9d; border: 4px solid #f2cfcb; }
+    /* Box 5: TBR */
+    .box-tbr { background-color: #ab7e67; border: 4px solid #eb9d9d; }
+
+    .stat-box h3 { margin: 0; font-size: 40px; font-weight: bold; }
+    .stat-box p { margin: 5px 0 0; font-size: 16px; font-weight: bold; text-transform: uppercase; }
+    }
+            #main-stats-container { 
+        display: flex; 
+        gap: 30px; 
+        justify-content: center; 
+        align-items: center;
+        margin: 20px 0 30px 0; 
+        width: 100%;
+        text-align: center;
+        position: relative;
+        left: 50%;
+        transform: translateX(-50%);
+        max-width: 600px;
+
+    }
+
+    .main-stat-box { 
+        border-radius: 15px; 
+        padding: 40px; 
+        width: 280px; 
+        text-align: center;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        border: 4px solid #933B5B;
+        background-color: #9F9679;
+    }
+
+    .main-box-books { }
+    .main-box-pages { }
+
+    .main-stat-box h3 { 
+        margin: 0; 
+        font-size: 50px; 
+        font-weight: bold; 
+        color: #2c2c2c;
+    }
+    .main-stat-box p { 
+        margin: 8px 0 0; 
+        font-size: 18px; 
+        font-weight: bold; 
+        text-transform: uppercase; 
+        color: #2c2c2c;
+    }
+
+    /* Force proper layout for main stats - add at the end */
+    #main-stats-container { 
+        display: flex !important; 
+        flex-direction: row !important;
+        gap: 30px !important; 
+        justify-content: center !important; 
+        align-items: center !important;
+        margin: 20px auto 30px auto !important; 
+        width: 100% !important;
+        text-align: center !important;
+    }
+
+    .main-stat-box {
+        flex: 0 0 280px !important;
+        display: inline-block !important;
+    }
+
+    /* Filter Section Styling */
+    .filter-section {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;  /* Changed from center to flex-end */
+    gap: 30px;
+    margin: 30px 0;
+    padding: 20px;
+}
+
+.filter-label {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.filter-label span {
+    color: #443025;
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+.filter-date-input {
+    padding: 10px;
+    border: 2px solid #443025;
+    border-radius: 6px;
+    font-size: 16px;
+    color: #443025;
+    background-color: transparent;
+    width: 180px;
+}
+
+.filter-date-input:focus {
+    outline: none;
+    border-color: #443025;
+}
+
+.filter-presets {
+    display: flex;
+    gap: 10px;
+    align-self: flex-end;  /* Aligns preset buttons to bottom */
+    height: 44px;  /* Matches input height */
+}
+
+.filter-preset-btn {
+    padding: 10px 20px;
+    background-color: #443025;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    font-weight: bold;
+    height: 100%;  /* Makes buttons full height of container */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.filter-preset-btn:hover {
+    opacity: 0.9;
+}
+
+       /* This is the main frame of the bookshelf */
+    #bookshelf-container {
+        display: flex;
+        flex-direction: column;
+        gap: 0; /* Removed the gap so shelves connect to the walls */
+        padding: 0 15px; /* Space between the books and the side walls */
+        margin: 20px auto;
+        max-width: 1200px; /* Keeps the shelf from getting too wide on big screens */
+	overflow: visible !important;
+        
+        /* THE ENCLOSURE (Wooden Frame) */
+        border-left: 12px solid #443024;  /* Left wall */
+        border-right: 12px solid #443024; /* Right wall */
+        border-top: 12px solid #443024;   /* Top lid */
+        background-color: #fdfaf6;        /* A very slight "inner-shelf" tint */
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+
+
+   /* This is the actual wooden shelf plank */
+    .shelf {
+        display: flex;
+        align-items: flex-end; /* Everything sits flat on the wood */
+        justify-content: flex-start;
+        border-bottom: 10px solid #443024; /* Thicker wood */
+        min-height: 220px; /* Taller shelf for bigger plants */
+        padding-bottom: 0;
+        gap: 0; /* Books touch each other like a real shelf */
+        margin-bottom: 50px;
+        flex-wrap: nowrap; /* THIS STOPS THE PILING! */
+        width: 100%;
+        overflow: visible !important;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* The styling for an individual book */
+    .shelf-book {
+        border: 2px solid #443024; /* Hand-drawn outline look */
+       	border-radius: 4px 4px 2px 2px;; /* Rounded top corners */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 5px;
+        font-size: 11px;
+        cursor: default;
+        background-color: white; /* Default unread color */
+        transition: background-color 0.3s;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+	word-wrap: break-word;
+writing-mode: vertical-rl; 
+        transform: rotate(180deg);
+        white-space: normal; /* Allows wrapping! */
+        word-break: keep-all; /* Keeps words together so they don't break mid-word */
+        overflow: visible !important;
+	background-image: linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px);
+	background-size: 4px 100%;
+  
+    }
+        // THE SHELF MAGIC: This draws the books on the shelf!
+      
+                // 6. Add the book to the current shelf
+                currentShelf.appendChild(bookDiv);
+
+                // 7. Start a NEW shelf every 15 books so it doesn't get too long
+                if ((index + 1) % 15 === 0) {
+                    currentShelf = document.createElement('div');
+                    currentShelf.className = 'shelf';
+                    container.appendChild(currentShelf);
+                }
+            });
+        }
+           .curio {
+        display: inline-block;
+        vertical-align: bottom;
+        margin: 0 20px; /* Space around the decoration */
+        flex-shrink: 0; /* Prevents the image from being squished */
+    }
+
+    .curio-img {
+        height: 210px; /* This makes them nice and tall! */
+        width: auto;   /* Keeps the proportions right */
+        display: block;
+    }
+
+    /* This forces the 5 status boxes to be side-by-side and centered */
+    #stats-container { 
+        display: flex !important; 
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        gap: 20px !important; 
+        justify-content: center !important; 
+        margin-top: 40px !important; 
+        width: 100% !important;
+    }
+
+    /* This ensures the individual boxes stay a good size */
+    .stat-box { 
+        border-radius: 20px; 
+        padding: 25px; 
+        width: 200px; 
+        text-align: center;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    }
+
+    /* This is the container that holds the icon and the box together */
+    .search-wrapper {
+        position: relative;
+        width: 400px;
+        margin-bottom: 20px;
+    }
+
+    /* This puts the icon inside the box on the left */
+    .search-icon {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 18px;
+        pointer-events: none; /* This makes sure you click the box, not the icon */
+    }
+
+    /* This is the search box itself */
+    #librarySearch {
+        width: 100%;
+        height: 45px;
+        padding-left: 45px; /* This makes space for the icon so text doesn't overlap */
+        border: 2px solid #443024;
+        border-radius: 12px;
+        background: white;
+        outline: none;
+        font-size: 16px;
+    }
+    /* This specifically targets inputs and selects inside the Table Header */
+    th .column-filter {
+        height: 28px !important;
+        padding: 2px 5px !important;
+        font-size: 12px !important;
+        margin-top: 5px !important;
+        border: 1px solid #443024 !important;
+        border-radius: 6px !important;
+        width: 100% !important;
+        display: block !important;
+        background-color: white !important;
+        font-weight: normal !important;
+    }
+
+    /* Making the headers look like clickable buttons */
+  th.filterable, th.header-box {
+        cursor: pointer;
+        background-color: #fdfaf6; /* Light paper color */
+        border: 1px solid #443024 !important;
+        border-radius: 8px;
+        padding: 10px !important;
+        transition: background 0.2s;
+        position: relative;
+	text-align: center !important;
+
+    }
+
+    th.filterable:hover {
+        background-color: #f2cfcb; /* Soft pink on hover */
+    }
+
+    /* The Secret Filter Menu (hidden by default) */
+    .filter-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background-color: white;
+        border: 2px solid #443024;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        z-index: 1000;
+        width: 220px;
+        padding: 10px;
+        display: none; /* Starts hidden */
+        text-align: left;
+        font-weight: normal;
+    }
+
+    /* The search box inside the filter menu */
+    .filter-search {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    /* The list of checkboxes */
+    .filter-list {
+        max-height: 200px;
+        overflow-y: auto;
+        margin-bottom: 10px;
+    }
+
+    .filter-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 0;
+        font-size: 14px;
+    }
+
+    .filter-actions {
+        display: flex;
+        justify-content: space-between;
+    }
+    #clearFiltersBtn {
+        height: 45px;
+        background-color: #928e5e; /* Your new olive color */
+        border: 2px solid #443024; /* Keeping the dark brown border */
+        color: white;             /* White text looks best on this color */
+        padding: 0 20px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: opacity 0.2s;
+    }
+    #clearFiltersBtn:hover {
+        opacity: 0.9;
+    }
+    /* Adjusting the Title column to be much wider */
+    th:nth-child(1), td:nth-child(1) {
+        width: 350px; 
+    }
+
+    /* Adjusting the Pages column to be nice and narrow */
+    th:nth-child(4), td:nth-child(4) {
+        width: 120px;
+    }
+
+    <!-- BOOK COVERS CONTAINER -->
+    <div id="bookCoversContainer" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 30px; padding: 20px;">
+        <!-- Book covers and hearts will appear here! -->
+    </div>
+
+
+    /* Styling for Year and Month Dropdowns */
+    #yearFilter, #monthFilter {
+        width: 180px;
+        height: 45px;
+        padding: 10px;
+        border: 2px solid #443024;
+        border-radius: 8px;
+        background-color: white;
+        font-size: 16px;
+        color: #443024;
+        appearance: none; /* Removes default browser styling */
+        background-image: url("data:image/svg+xml;utf8,<svg fill='%23443024' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+        background-repeat: no-repeat;
+        background-position-x: 95%;
+        background-position-y: center;
+    }
+
+    #yearFilter:focus, #monthFilter:focus {
+        outline: none;
+        border-color: #8B5E3C;
+    }
+    
+    /* FORCE styling on Year and Month dropdowns for Safari */
+    #yearFilter, #monthFilter {
+        -webkit-appearance: none !important;
+        appearance: none !important;
+        background-color: transparent !important;
+        height: 45px !important;
+        width: 180px !important;
+        padding: 10px 30px 10px 10px !important;
+        border: 2px solid #443025 !important;
+        border-radius: 6px !important;
+        font-size: 16px !important;
+        color: #443025 !important;
+        font-family: 'Delius', cursive !important;
+        cursor: pointer !important;
+        background-image: url("data:image/svg+xml;utf8,<svg fill='%23443025' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>") !important;
+        background-repeat: no-repeat !important;
+        background-position: right 10px center !important;
+    }
+
+    #yearFilter:focus, #monthFilter:focus {
+        outline: none !important;
+    }
+
+    /* This creates the half-red heart effect */
+        .half-heart {
+        position: relative;
+        display: inline-block;
+        color: #cccccc !important; /* The empty gray part */
+        font-size: 22px;
+    }
+
+    .half-heart::after {
+        content: '♥'; /* Using a plain heart character */
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 48%; /* Show slightly less than half for a better look */
+        overflow: hidden;
+        color: #e31b23 !important; /* The filled red part */
+        z-index: 1;
+    }
+    /* This styles the "Fake" book cover when a real image is missing */
+    .book-cover-placeholder {
+        width: 150px;
+        height: 225px;
+        background-color: #e3d6bf; /* A nice paper/tan color */
+        border: 2px solid #443024;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 15px;
+        text-align: center;
+        font-weight: bold;
+        font-size: 14px;
+        color: #443024;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        box-sizing: border-box;
+    }
+
+    /* 1. Make sure the book spine can hold a bubble */
+    .shelf-book {
+        position: relative;
+    }
+
+    /* 2. Style the hidden "Paper Tag" bubble */
+      .book-tooltip {
+        position: fixed; /* Floats on top of everything else */
+        background-color: #fdfaf6;
+        border: 2px solid #443024;
+        border-radius: 10px;
+        padding: 12px;
+        width: 180px;
+        color: #443024;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        z-index: 999999; /* The highest layer possible */
+        text-align: center;
+        pointer-events: none; /* Your mouse clicks go through it */
+	/* We DO NOT need rotate(180deg) here because it's not inside the flipped book anymore! */
+        transform: translateX(-50%);
+        font-family: 'Delius', cursive !important;
+    }
+
+
+    /* 4. Fix the shelf so bubbles aren't cut off by the one above */
+    .shelf {
+        overflow: visible !important; 
+    }
+.pie-slice {
+    position: absolute;
+    width: 250px;
+    height: 250px;
+    border-radius: 50%;
+    top: 25px;
+    left: 25px;
+    transition: all 0.4s ease;
+    border: 2px solid #443024;
+    /* We use 'currentColor' so the JavaScript just has to change the text color */
+    background: conic-gradient(currentColor var(--angle), transparent 0);
+}
+    </style>
+</head>
+<body>
+
+    <h1>My Book Library</h1>
+   <div class="tab-bar">
+    <button class="tab-btn active" onclick="openTab('shelf-tab', this)">Shelf</button>
+    <button class="tab-btn" onclick="openTab('library-tab', this)">Library</button>
+    <button class="tab-btn" onclick="openTab('goals-tab', this)">Goals & Favorites</button>
+    <button class="tab-btn" onclick="openTab('stats-tab', this)">Stats</button>
+    <button class="tab-btn" onclick="openTab('assistant-tab', this)">Reading Assistant</button>
+</div>
+
+<!-- THE SHELF TAB -->
+<div id="shelf-tab" class="tab-content">
+<h2 style="text-align: center; font-size: 36px; color: #443024; margin-top: 20px; margin-bottom: 10px;">
+    My Personal Library
+</h2>
+<p style="text-align: center; color: #8B5E3C; margin-bottom: 30px; font-style: italic;">
+    "A room without books is like a body without a soul."
+</p>
+    <div id="bookshelf-container">
+        <!-- Magic will happen here: Shelves and books will be drawn by our script -->
+    </div>
+</div> <!-- 🏁 END OF SHELF TAB SECTION 🏁 -->
+
+<!-- THE LIBRARY TAB -->
+<div id="library-tab" class="tab-content" style="display: none;">
+
+    <!-- 1. SEARCH BAR (Top Row) -->
+    <div class="search-wrapper" style="margin-bottom: 20px;">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="librarySearch" placeholder="Search by title or author...">
+    </div>
+
+    <!-- 2. ADD BOOK & CLEAR FILTERS (Bottom Row) -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; width: 100%;">
+        
+        <!-- Left Side: Add Book Inputs -->
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <div class="input-group" style="width: 250px;">
+                <input type="text" id="newTitle" placeholder=" ">
+                <label>Title</label>
+            </div>
+            <div class="input-group" style="width: 250px;">
+                <input type="text" id="newAuthor" placeholder=" ">
+                <label>Author</label>
+            </div>
+
+<!-- THE LOOKUP BUTTON -->
+           <button id="lookupBtn" onclick="lookupBookDetails()" style="background-color: white; border: 2px solid #443024; color: #443024; padding: 0 15px; border-radius: 8px; height: 45px; cursor: pointer; font-weight: bold; margin-right: 5px;">
+    🔍 Lookup Details
+</button>
+<button id="addBtn">Add to Library</button>
+        </div>
+
+<!-- THE SCANNER BUTTON -->
+<button id="scanBtn" onclick="toggleScanner()" style="background-color: #933b5b; color: white; border: none; padding: 0 15px; border-radius: 8px; height: 45px; cursor: pointer; font-weight: bold; margin-right: 5px;">
+    📷 Scan Barcode
+</button>
+
+<!-- THE CAMERA WINDOW (Hidden at first) -->
+<!-- NEW SCANNER BOX -->
+<div id="scanner-container" style="display: none; margin: 20px auto; border: 4px solid #443024; border-radius: 15px; overflow: hidden; width: 100%; max-width: 450px; background: #000;">
+    <div id="reader" style="width: 100%;"></div>
+</div>
+
+               <!-- Right Side: Favorites, Surprise, and Clear Buttons -->
+        <div style="display: flex; gap: 10px;">
+            <button id="favoritesBtn" onclick="filterByFavorites()" style="height: 45px; background-color: #ec9c9d; border: 2px solid #443024; color: #443025; padding: 0 20px; border-radius: 12px; cursor: pointer; font-weight: bold;">
+                ♥️ My Favorites
+            </button>
+            
+            <button id="surpriseBtn" onclick="pickNextRead()" style="height: 45px; background-color: #fdfaf6; border: 2px solid #443024; color: #443024; padding: 0 20px; border-radius: 12px; cursor: pointer; font-weight: bold;">
+                🎲 Surprise Me!
+            </button>
+
+            <button id="clearFiltersBtn" onclick="clearEveryFilter()" style="height: 45px; background-color: #928e5e; border: 2px solid #443024; color: white; padding: 0 20px; border-radius: 12px; cursor: pointer; font-weight: bold;">
+                Clear All Filters
+            </button>
+        </div>
+    </div>
+
+
+    <table>
+           <thead>
+        <tr>
+            <th onclick="toggleFilterMenu(0, this)" class="filterable">Title ▾</th>
+            <th onclick="toggleFilterMenu(1, this)" class="filterable">Author ▾</th>
+            <th onclick="toggleFilterMenu(2, this)" class="filterable">ISBN ▾</th>
+            <th onclick="toggleFilterMenu(3, this)" class="filterable">Pages ▾</th>
+            <th onclick="toggleFilterMenu(4, this)" class="filterable">Started ▾</th>
+            <th onclick="toggleFilterMenu(5, this)" class="filterable">Finished ▾</th>
+            <th onclick="toggleFilterMenu(6, this)" class="filterable">Status ▾</th>
+            <th onclick="toggleFilterMenu(7, this)" class="filterable">Rating ▾</th>
+	    <th onclick="toggleFilterMenu(8, this)" class="filterable">Genre ▾</th>
+            <th class="header-box">Action</th>
+        </tr>
+    </thead>
+
+        <tbody id="libraryTableBody"></tbody>
+    <div id="shared-filter-menu" class="filter-dropdown"></div>
+
+    </table>
+
+    <div class="footer-btns">
+        <button onclick="document.getElementById('csvFileInput').click()">📥 Import from CSV</button>
+        <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
+<button onclick="exportToCSV()" style="background: #e7e7e7; border: 1px solid #ccc; padding: 10px 15px; cursor: pointer; border-radius: 5px; margin-right: 10px;">
+    📤 Export to CSV (Excel)
+</button>
+        <button onclick="if(confirm('Reset all?')) { localStorage.clear(); location.reload(); }" style="color: red; border-color: red;">⚠️ 
+Reset Everything</button>
+    </div>
+</div> <!-- 🏁 END OF LIBRARY TAB SECTION 🏁 -->
+
+<!-- THE GOALS TAB -->
+<div id="goals-tab" class="tab-content" style="display: none;">
+    <h2>My Reading Journey</h2>
+
+<!-- READING GOAL SECTION -->
+    <div style="max-width: 675px; margin: 0 auto 40px auto; text-align: center; background: white; padding: 25px; border-radius: 25px; border: 3px solid #933b5b; box-shadow: 0 5px 15px rgba(0,0,0,0.05);">
+        <h1 style="margin-top: 0; margin-bottom: 10px; color: #933b5b; font-size: 42px; font-weight: 900; letter-spacing: -1px;">
+    My Reading Goal for The Year 📖
+</h1>
+        
+        <div style="margin-bottom: 15px;">
+            <label>Set your goal: </label>
+            <input type="number" id="readingGoalInput" value="50" oninput="saveGoal(); updateGoalBar();" 
+                   style="width: 70px; padding: 5px; border: 2px solid #933b5b; border-radius: 8px; text-align: center;">
+            <span style="font-weight: bold;"> books</span>
+        </div>
+
+        <!-- The Progress Bar Background -->
+        <div style="width: 100%; height: 30px; background-color: #f6eeee; border: 2px solid #443024; border-radius: 15px; position: relative; overflow: hidden;">
+            <div id="goalProgressBar" style="width: 0%; height: 100%; background-color: #ec9c9d; transition: width 0.5s ease-in-out;"></div>
+            <span id="goalPercentText" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 14px; color: #443024;">0%</span>
+        </div>
+
+        <p id="goalRemainingText" style="margin-top: 10px; font-style: italic; color: #8B5E3C;">
+            Keep reading! You've got this!
+        </p>
+    </div>
+
+   <!-- THE TROPHY CASE (NEW) -->
+        <div id="trophyCase" style="max-width: 650px; margin: 40px auto; text-align: center; background: white; padding: 25px; border: 3px solid #928e5e; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05);">
+            <h3 style="margin-top: 0; margin-bottom: 0; color: #443024; font-size: 24px;">🏆 Monthly Achievement Case</h3>
+	    <p id="currentMonthDisplay" style="font-size: 14px; color: #933b5b; font-weight: bold; font-style: italic; margin-top: 2px; margin-bottom: 15px;"></p>
+            <p id="trophyMessage" style="font-size: 15px; color: #8B5E3C; margin-bottom: 20px;">Finish more books this month to unlock trophies!</p>
+            
+            <div style="display: flex; justify-content: center; gap: 30px;">
+                <div id="trophy-bronze" style="opacity: 0.15; transition: opacity 0.5s;">
+                    <div style="font-size: 50px;">🥉</div>
+                    <p style="font-weight: bold; font-size: 12px; margin-top: 5px;">Bronze Reader<br>(7 Books)</p>
+                </div>
+                <div id="trophy-silver" style="opacity: 0.15; transition: opacity 0.5s;">
+                    <div style="font-size: 50px;">🥈</div>
+                    <p style="font-weight: bold; font-size: 12px; margin-top: 5px;">Silver Reader<br>(12 Books)</p>
+                </div>
+                <div id="trophy-gold" style="opacity: 0.15; transition: opacity 0.5s;">
+                    <div style="font-size: 50px;">🥇</div>
+                    <p style="font-weight: bold; font-size: 12px; margin-top: 5px;">Gold Reader<br>(20 Books)</p>
+                </div>
+            </div>
+        </div>
+ <!-- 4. RATING FILTERS & HEADER (The Hall of Fame section starts here) -->
+    <div style="margin-top: 60px; border-top: 2px solid #443024; padding-top: 40px; text-align: center;">
+        <h2 style="font-size: 36px; color: #933b5b; margin-bottom: 10px;">🌟 My 5-Star Hall of Fame 🌟</h2>
+        <p style="color: #8B5E3C; font-style: italic; margin-bottom: 30px;">A collection of my absolute favorite 5-star reads</p>
+
+        <!-- Dropdowns now sit cleanly below the title -->
+        <div class="filter-section" style="margin-top: 0; padding-top: 0;">
+            <div class="filter-label">
+                <span>Filter by Year:</span>
+                <select id="yearFilter" class="filter-date-input">
+                    <option value="all">All Years</option>
+                </select>
+            </div>
+            <div class="filter-label">
+                <span>Filter by Month:</span>
+                <select id="monthFilter" class="filter-date-input">
+                    <option value="all">All Months</option>
+                    <option value="01">January</option><option value="02">February</option>
+                    <option value="03">March</option><option value="04">April</option>
+                    <option value="05">May</option><option value="06">June</option>
+                    <option value="07">July</option><option value="08">August</option>
+                    <option value="09">September</option><option value="10">October</option>
+                    <option value="11">November</option><option value="12">December</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+        <!-- 5. BOOK COVERS CONTAINER -->
+        <div id="bookCoversContainer" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 30px; padding: 20px;">
+            <!-- Book covers will appear here -->
+        </div>
+    <!-- 4. MONTHLY FAVORITES GALLERY -->
+    <div style="margin-top: 60px; border-top: 2px solid #443024; padding-top: 40px; text-align: center;">
+        <h2 style="font-size: 32px; color: #933b5b;">🏆 My Monthly Favorites</h2>
+        
+        <div style="background: white; border: 3px solid #933b5b; border-radius: 25px; padding: 30px; max-width: 700px; margin: 0 auto; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
+            
+            <!-- Filters inside the box -->
+            <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 30px;">
+                <select id="favGalleryYear" class="filter-date-input" onchange="displaySavedMonthlyWinners()"></select>
+                <select id="favGalleryMonth" class="filter-date-input" onchange="displaySavedMonthlyWinners()">
+                    <option value="01">January</option><option value="02">February</option>
+                    <option value="03">March</option><option value="04">April</option>
+                    <option value="05">May</option><option value="06">June</option>
+                    <option value="07">July</option><option value="08">August</option>
+                    <option value="09">September</option><option value="10">October</option>
+                    <option value="11">November</option><option value="12">December</option>
+                </select>
+            </div>
+
+            <div id="monthlyWinnerDisplay" style="display: flex; gap: 40px; justify-content: center; align-items: center;">
+                <!-- Result will appear here -->
+                <p style="color: #8B5E3C; font-style: italic;">Select a month to see your favorites!</p>
+            </div>
+        </div>
+    </div>
+    <!-- MONTHLY MISSION INLINE BOX (Only shows if favorites are missing) -->
+    <div id="missionInlineContainer" style="display: none; margin-top: 30px; background-color: #fff9f9; padding: 30px; border: 3px dashed #933b5b; border-radius: 25px; max-width: 700px; margin-left: auto; margin-right: auto; text-align: center;">
+        <h2 style="color: #933b5b; margin-top: 0;">🎯 Monthly Mission!</h2>
+        <p id="missionTitle" style="color: #443024; font-weight: bold; margin-bottom: 20px;"></p>
+        
+        <div style="display: flex; gap: 20px; text-align: left; justify-content: center;">
+            <div style="flex: 1;">
+                <label style="font-size: 13px; font-weight: bold;">📖 Favorite Book:</label>
+                <select id="missionBookPicker" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 5px;"></select>
+            </div>
+            <div style="flex: 1;">
+                <label style="font-size: 13px; font-weight: bold;">✍️ Favorite Author:</label>
+                <select id="missionAuthorPicker" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 5px;"></select>
+            </div>
+        </div>
+
+        <button onclick="saveMissionChoice()" style="margin-top: 25px; background-color: #933b5b; color: white; border: none; padding: 12px 30px; border-radius: 12px; cursor: pointer; font-weight: bold;">
+            Confirm My Favorites
+        </button>
+    </div>
+</div> <!-- 🏁 END OF GOALS & FAVORITES TAB SECTION 🏁 -->
+
+       
+<!-- THE STATS TAB -->
+<div id="stats-tab" class="tab-content" style="display: none;">
+    <h2>My Reading Statistics</h2>
+    
+<!-- 1. Main totals - bigger and on top -->
+	<div id="main-stats-container">
+        <div class="main-stat-box main-box-books">
+            <h3 id="stat-total-books">0</h3>
+            <p>Books Read</p>
+        </div>
+        <div class="main-stat-box main-box-pages">
+            <h3 id="stat-total-pages">0</h3>
+            <p>Pages Read</p>
+        </div>
+    </div> 
+
+<!-- 2. FILTER SECTION (From/To) -->
+        <div class="filter-section">
+            <div class="filter-label">
+                <span>From:</span>
+                <input type="date" id="filter-from" class="filter-date-input" onchange="this.blur()">
+            </div>
+            <div class="filter-label">
+                <span>To:</span>
+                <input type="date" id="filter-to" class="filter-date-input" onchange="this.blur()">
+            </div>
+            <div class="filter-presets">
+                <button class="filter-preset-btn" data-preset="thisweek">This Week</button>
+                <button class="filter-preset-btn" data-preset="thismonth">This Month</button>
+                <button class="filter-preset-btn" data-preset="thisyear">This Year</button>
+            </div>
+        </div>
+
+ <!-- 3. Status breakdown - 5 colored boxes -->
+    <div id="stats-container">
+        <div class="stat-box box-want"><h3 id="stat-want">0</h3><p>Want to Read</p></div>
+        <div class="stat-box box-current"><h3 id="stat-current">0</h3><p>Reading</p></div>
+        <div class="stat-box box-read"><h3 id="stat-read">0</h3><p>Read</p></div>
+        <div class="stat-box box-dnf"><h3 id="stat-dnf">0</h3><p>DNF</p></div>
+        <div class="stat-box box-tbr"><h3 id="stat-tbr">0</h3><p>TBR</p></div>
+    </div>
+
+<!-- NEW: READING INSIGHTS SECTION -->
+<div style="margin-top: 50px; border-top: 2px dashed #933b5b; padding-top: 30px; text-align: center;">
+    <h3 style="font-size: 28px; color: #933b5b; margin-bottom: 25px;">✨ Reading Insights ✨</h3>
+    
+    <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+        <!-- Insight 1: Longest Book -->
+        <div style="background: white; border: 2px solid #443024; border-radius: 15px; padding: 15px; width: 250px;">
+            <p style="font-size: 12px; text-transform: uppercase; color: #8B5E3C; margin: 0;">🧱 The "Brick" (Longest)</p>
+            <h4 id="insight-longest" style="margin: 10px 0; font-size: 16px;">Scanning...</h4>
+        </div>
+
+        <!-- Insight 2: Shortest Book -->
+        <div style="background: white; border: 2px solid #443024; border-radius: 15px; padding: 15px; width: 250px;">
+            <p style="font-size: 12px; text-transform: uppercase; color: #8B5E3C; margin: 0;">⚡ Quickest Read (Shortest)</p>
+            <h4 id="insight-shortest" style="margin: 10px 0; font-size: 16px;">Scanning...</h4>
+        </div>
+
+        <!-- Insight 3: Average Length -->
+        <div style="background: white; border: 2px solid #443024; border-radius: 15px; padding: 15px; width: 250px;">
+            <p style="font-size: 12px; text-transform: uppercase; color: #8B5E3C; margin: 0;">📖 Your "Sweet Spot" (Avg)</p>
+            <h4 id="insight-average" style="margin: 10px 0; font-size: 16px;">Scanning...</h4>
+        </div>
+    </div>
+</div>
+
+<!-- NEW: THE COFFEE CONVERTER SECTION -->
+<div style="margin-top: 50px; border-top: 2px dashed #933b5b; padding-top: 30px; text-align: center;">
+    <h3 style="font-size: 28px; color: #933b5b; margin-bottom: 25px;">☕ The Coffee Counter ☕</h3>
+    
+    <div style="background: white; border: 2px solid #443024; border-radius: 20px; padding: 30px; max-width: 500px; margin: 0 auto; box-shadow: 0 5px 15px rgba(0,0,0,0.05);">
+        <p style="font-size: 18px; margin: 0; color: #443024;">
+            You've read <span id="coffee-pages" style="font-weight: bold; color: #933b5b;">0</span> pages...
+        </p>
+        <p style="font-size: 22px; margin-top: 10px; color: #443024; font-weight: bold;">
+            That's about <span id="coffee-cups" style="font-size: 35px; color: #8B5E3C;">0</span> cups of coffee!
+        </p>
+        <div style="font-size: 50px; margin-top: 15px;">☕✨📖</div>
+        <p style="font-size: 12px; color: #8B5E3C; font-style: italic; margin-top: 15px;">
+            (Calculated at one cozy cup for every 100 pages)
+        </p>
+    </div>
+</div>
+
+<!-- THE CHART DASHBOARD (Side-by-Side) -->
+<div style="margin-top: 50px; border-top: 2px dashed #933b5b; padding-top: 30px; text-align: center;">
+    
+    <div style="display: flex; justify-content: center; align-items: flex-start; gap: 30px; flex-wrap: wrap;">
+        
+        <!-- CHART 1: RATINGS -->
+        <div style="background: white; border: 2px solid #443024; border-radius: 20px; padding: 20px; width: 450px; box-shadow: 0 5px 15px rgba(0,0,0,0.05);">
+            <h3 style="font-size: 22px; color: #933b5b; margin-bottom: 20px;">🌟 Rating Distribution</h3>
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <div style="width: 180px; height: 180px; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.15));">
+                    <svg id="pie-svg" viewBox="0 0 100 100" style="width: 100%; height: 100%; transform: rotate(-90deg);"></svg>
+                </div>
+                <!-- Legend for Ratings -->
+                <div style="text-align: left; font-size: 13px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;"><div style="width:10px; height:12px; background:#933b5b;"></div> 5 Stars: <b id="pie-count-5">0</b></div>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;"><div style="width:10px; height:12px; background:#ec9c9d;"></div> 4 Stars: <b id="pie-count-4">0</b></div>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;"><div style="width:10px; height:12px; background:#ab7e67;"></div> 3 Stars: <b id="pie-count-3">0</b></div>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;"><div style="width:10px; height:12px; background:#e3d6bf;"></div> 2 Stars: <b id="pie-count-2">0</b></div>
+                    <div style="display: flex; align-items: center; gap: 8px;"><div style="width:10px; height:12px; background:#f6eeee; border:1px solid #ddd;"></div> 1 Star: <b id="pie-count-1">0</b></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CHART 2: GENRES -->
+        <div style="background: white; border: 2px solid #443024; border-radius: 20px; padding: 20px; width: 450px; box-shadow: 0 5px 15px rgba(0,0,0,0.05);">
+            <h3 style="font-size: 22px; color: #933b5b; margin-bottom: 20px;">📚 Genre Breakdown</h3>
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <div style="width: 180px; height: 180px; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.15));">
+                    <svg id="genre-pie-svg" viewBox="0 0 100 100" style="width: 100%; height: 100%; transform: rotate(-90deg);"></svg>
+                </div>
+                <!-- Legend for Genres -->
+                <div id="genre-legend" style="text-align: left; font-size: 13px; display: grid; grid-template-columns: 1fr; gap: 4px;">
+                    <!-- Filled by JS -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- NEW: THE FINISH LINE CALCULATOR -->
+<div style="margin-top: 50px; border-top: 2px dashed #933b5b; padding-top: 30px; text-align: center;">
+    <h3 style="font-size: 28px; color: #933b5b; margin-bottom: 25px;">🔮 The Reading Fortune Teller 🔮</h3>
+    
+    <div style="background: #fdfaf6; border: 3px double #933b5b; border-radius: 25px; padding: 30px; max-width: 600px; margin: 0 auto; box-shadow: 0 10px 20px rgba(0,0,0,0.05); position: relative;">
+        <!-- Decorative Sparkles -->
+        <span style="position: absolute; top: 10px; left: 20px; font-size: 20px;">✨</span>
+        <span style="position: absolute; bottom: 10px; right: 20px; font-size: 20px;">✨</span>
+
+        <p style="font-size: 18px; color: #443024; margin-bottom: 15px;">
+            At your current pace of <span id="pace-number" style="font-weight: bold; color: #933b5b;">0</span> books per month...
+        </p>
+        
+        <div style="font-size: 24px; font-weight: bold; color: #443024; line-height: 1.4;">
+            You will finish all <span id="tbr-count-stat" style="color: #8B5E3C;">0</span> books on your TBR list by:
+            <br>
+            <span id="finish-date-prediction" style="font-size: 40px; color: #933b5b; display: block; margin-top: 10px; text-decoration: underline;">Calculating...</span>
+        </div>
+
+        <p style="margin-top: 20px; font-size: 14px; color: #8B5E3C; font-style: italic;">
+            "So many books, so little time... but we're getting there!" 🕯️
+        </p>
+    </div>
+</div>
+
+</div> <!-- 🏁 END OF STATS TAB SECTION 🏁 -->
+
+<!-- THE READING ASSISTANT TAB -->
+<div id="assistant-tab" class="tab-content" style="display: none;">
+    <h2>Reading Assistant</h2>
+<div style="max-width: 600px; margin: 0 auto; background-color: #f6eeee; border-radius: 15px; padding: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+    <div id="chat-messages" style="height: 400px; overflow-y: auto; border-bottom: 2px solid #933b5b; padding-bottom: 15px;">
+        <!-- Messages will appear here -->
+    </div>
+    
+    <div style="display: flex; margin-top: 15px;">
+        <input type="text" id="chat-input" placeholder="Ask about your library..." 
+               style="flex-grow: 1; padding: 10px; border: 2px solid #443024; border-radius: 8px; margin-right: 10px;">
+        <button onclick="sendChatMessage()" 
+                style="background-color: #933b5b; color: white; border: none; padding: 10px 20px; border-radius: 8px;">
+            Send
+        </button>
+    </div>
+</div>
+</div> <!-- 🏁 END OF READING ASSISTANT TAB SECTION 🏁 -->
+
+
+    <!-- THE POPUPS (Keep these outside the tabs) -->
+    <div id="lookupModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center;">
+        <div style="background-color: #f6eeee; padding: 30px; border: 3px solid #443024; border-radius: 20px; width: 400px; text-align: center;">
+            <h2 id="modalBookTitle">Found Book!</h2>
+            <p id="modalBookAuthor"></p><p id="modalBookPages"></p><p id="modalBookISBN"></p>
+            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                <button id="confirmAddBtn" style="background-color: #443024; color: white; border: none; padding: 12px 20px; border-radius: 10px; cursor: pointer;">Add to Library</button>
+                <button onclick="closeModal()" style="background-color: white; border: 2px solid #443024; padding: 12px 20px; border-radius: 10px; cursor: pointer;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="duplicateModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center;">
+        <div style="background-color: #f6eeee; padding: 30px; border: 3px solid #443024; border-radius: 20px; width: 500px; text-align: center; max-height: 80vh; overflow-y: auto;">
+            <h2>⚠️ Duplicates Found!</h2>
+            <div id="duplicateList" style="text-align: left; margin: 20px 0; max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 15px; border-radius: 10px; background-color: white;"></div>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button id="addSelectedBtn" onclick="addSelectedDuplicates()" style="background-color: #443024; color: white; border: none; padding: 12px 20px; border-radius: 10px; cursor: pointer;">Add Selected</button>
+                <button onclick="discardAllDuplicates()" style="background-color: white; border: 2px solid #443024; padding: 12px 20px; border-radius: 10px; cursor: pointer;">Discard All</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+let fetchedISBN = "";
+let fetchedPages = "";
+
+        function openTab(tabId, btn) {
+if (document.getElementById('master-book-tag')) document.getElementById('master-book-tag').style.display = 'none';
+            // 1. Hide all tab rooms
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.style.display = 'none';
+            });
+
+            // 2. Make all buttons look "faded" (inactive)
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                b.classList.remove('active');
+            });
+
+            // 3. Show the specific room we want
+            document.getElementById(tabId).style.display = 'block';
+
+            // 4. Make the clicked button look "bold" (active)
+            btn.classList.add('active');
+if (tabId === 'goals-tab') { 
+    updateOverviewStats(); 
+    displayRatedBooks(); 
+    updateGoalBar(); 
+    updateTrophies(); 
+    populateMonthlyYearFilters();
+    displaySavedMonthlyWinners();
+}
+
+if (tabId === 'stats-tab') { updateOverviewStats(); }
+
+if (tabId === 'assistant-tab') { 
+    const messageContainer = document.getElementById('chat-messages');
+    messageContainer.innerHTML = `
+        <div style="text-align: left; margin-bottom: 10px;">
+            <span style="background-color: #ec9c9d; color: #443024; padding: 15px; border-radius: 10px; display: inline-block; max-width: 80%; border: 2px solid #933b5b;">
+                <h3 style="margin: 0 0 10px 0; color: #933b5b;">Hello! I'm Bookerella, your librarian. 🕯️</h3>
+                I'm so happy to help you explore your wonderful collection! 
+                <br><br>
+                You can ask me things like:
+                <ul style="margin: 10px 0; padding-left: 20px;">
+                    <li>"Who wrote a book"</li>
+                    <li>"How many pages have you've read"</li>
+                    <li>"Who is your most-read author"</li>
+                    <li>"What is a book about"</li>
+                </ul>
+                How can I help you today? ☕📖
+            </span>
+        </div>
+    `;
+}
+        }
+
+        // 1. DATE FORMATTER (Fixes the missing dates problem)
+                function formatCSVDate(dateStr) {
+            if (!dateStr) return '';
+            // If it's already in the format the calendar needs (YYYY-MM-DD), just return it
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+
+            // Try to split by dash - or forward slash /
+            const parts = dateStr.split(/[-/]/);
+            if (parts.length === 3) {
+                const months = {
+                    'jan':'01','feb':'02','mar':'03','apr':'04','may':'05','jun':'06',
+                    'jul':'07','aug':'08','sep':'09','oct':'10','nov':'11','dec':'12'
+                };
+                
+                let day, month, year;
+
+                // Check if it's DD-MMM-YYYY (like 13-Apr-2026)
+                if (isNaN(parts[1])) {
+                    day = parts[0].padStart(2, '0');
+                    month = months[parts[1].toLowerCase().substring(0, 3)];
+                    year = parts[2];
+                } 
+                // Check if it's MM/DD/YYYY (like 04/13/2026)
+                else if (parts[2].length === 4) {
+                    month = parts[0].padStart(2, '0');
+                    day = parts[1].padStart(2, '0');
+                    year = parts[2];
+                }
+
+                if (month && day && year) {
+                    return `${year}-${month}-${day}`;
+                }
+            }
+            return ''; // If we can't figure it out, leave it blank for the user to pick
+        }
+
+        // 2. SAVING
+        function saveToLocalStorage() {
+            const rows = document.querySelectorAll('#libraryTableBody tr');
+            const allBooks = [];
+            rows.forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                      allBooks.push({
+            Title: inputs[0].value, 
+            Author: inputs[1].value, 
+            ISBN: inputs[2].value,
+            Pages: inputs[3].value, 
+            Started: inputs[4].value, 
+            Finished: inputs[5].value,
+            Status: row.querySelector('select').value, 
+            Rating: row.dataset.rating || "0",
+            Genre: row.querySelectorAll('select')[1].value // This grabs the second dropdown (Genre)
+        });
+
+            });
+            localStorage.setItem('myBookData', JSON.stringify(allBooks));
+        }
+
+        // 3. DISPLAYING
+        function displayBooks(booksArray, append = false) {
+            const tableBody = document.getElementById('libraryTableBody');
+            if (!append) tableBody.innerHTML = '';
+
+            booksArray.forEach(book => {
+                const row = tableBody.insertRow();
+                // Helper to update the row's background color based on status
+                const updateRowColor = (status) => {
+                    row.classList.remove('row-read', 'row-currently-reading');
+                    if (status === 'Read') row.classList.add('row-read');
+                    if (status === 'Currently reading') row.classList.add('row-currently-reading');
+                };
+                
+                // Set the initial color
+                updateRowColor(book.Status);
+
+                row.dataset.rating = book.Rating || book['My Rating'] || "0";
+
+                const createInp = (val, type='text') => {
+                    const i = document.createElement('input');
+                    i.type = type; i.value = val || '';
+                    i.oninput = saveToLocalStorage;
+                    return i;
+                };
+
+                row.insertCell().appendChild(createInp(book.Title));
+                row.insertCell().appendChild(createInp(book.Author));
+                row.insertCell().appendChild(createInp(book.ISBN));
+                row.insertCell().appendChild(createInp(book.Pages || book['Number of Pages'], 'number'));
+                
+                const sInp = createInp(formatCSVDate(book.Started), 'date');
+                row.insertCell().appendChild(sInp);
+
+                const fInp = createInp(formatCSVDate(book.Finished), 'date');
+                row.insertCell().appendChild(fInp);
+
+                const sel = document.createElement('select');
+                ['Want to read', 'Currently reading', 'Read', 'DNF', 'TBR', ''].forEach(opt => {
+                    const o = document.createElement('option');
+                    o.value = opt; o.textContent = opt || 'Select...';
+                    if (book.Status === opt) o.selected = true;
+                    sel.appendChild(o);
+                });
+                                sel.onchange = () => {
+                    updateRowColor(sel.value);
+                    saveToLocalStorage();
+                };
+
+                row.insertCell().appendChild(sel);
+
+                fInp.onchange = () => { if(fInp.value) { sel.value = 'Read'; saveToLocalStorage(); }};
+
+                const rateCell = row.insertCell();
+                const cont = document.createElement('div'); cont.className = 'star-rating';
+                rateCell.appendChild(cont);
+
+                function drawStars(val) {
+                    cont.innerHTML = '';
+                    const r = document.createElement('span'); r.textContent = '⊗'; r.style.cursor = 'pointer'; r.style.marginRight = '5px';
+                    r.onclick = () => { row.dataset.rating = "0"; drawStars(0); saveToLocalStorage(); };
+                    cont.appendChild(r);
+                    for (let i = 0.5; i <= 5; i += 0.5) {
+                        const s = document.createElement('span');
+                        s.textContent = '★'; s.style.cursor = 'pointer'; s.style.fontSize = '20px';
+                        s.style.width = '10px'; s.style.overflow = 'hidden'; s.style.display = 'inline-block';
+                        if (i % 1 === 0) s.style.transform = 'scaleX(-1)';
+                        s.style.color = val >= i ? 'gold' : 'lightgray';
+                        s.onclick = () => { row.dataset.rating = i; drawStars(i); saveToLocalStorage(); };
+                        cont.appendChild(s);
+                    }
+                }
+                    drawStars(parseFloat(row.dataset.rating));
+
+    // --- NEW: GENRE DROPDOWN ---
+    const genreCell = row.insertCell();
+    const genreSel = document.createElement('select');
+    
+    // These are your starting genres - you can add more to this list later!
+    const genres = ['Romance', 'Fantasy', 'Mystery', 'Thriller', 'Drama', 'Non-Fiction', 'Sci-Fi', 'Historical', 'Other'];
+    
+    genres.forEach(g => {
+        const o = document.createElement('option');
+        o.value = g; o.textContent = g;
+        // If the book already has a genre saved, select it. 
+        // Otherwise, default to 'Romance' like we planned.
+        if (book.Genre === g) o.selected = true;
+        else if (!book.Genre && g === 'Romance') o.selected = true;
+        genreSel.appendChild(o);
+    });
+
+    genreSel.onchange = saveToLocalStorage;
+    genreCell.appendChild(genreSel);
+    // ---------------------------
+
+    const delCell = row.insertCell();
+
+                delCell.style.textAlign = 'center';
+                const btn = document.createElement('button');
+                btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 448 512"><path fill="#8B5E3C" d="M32 464a48 48 0 0 0 48 48h288a48 48 0 0 0 48-48V128H32zm272-256a16 16 0 0 1 32 0v224a16 16 0 0 1-32 0zm-96 0a16 16 0 0 1 32 0v224a16 16 0 0 1-32 0zm-96 0a16 16 0 0 1 32 0v224a16 16 0 0 1-32 0zM432 32H312l-9.4-18.7A24 24 0 0 0 281.1 0H166.8a23.7 23.7 0 0 0-21.4 13.3L136 32H16A16 16 0 0 0 0 48v32a16 16 0 0 0 16 16h416a16 16 0 0 0 16-16V48a16 16 0 0 0-16-16z"/></svg>`;
+                btn.style.background = 'none'; btn.style.border = 'none'; btn.style.cursor = 'pointer';
+                btn.onclick = () => { if(confirm("Delete?")) { row.remove(); saveToLocalStorage(); }};
+                delCell.appendChild(btn);
+            });
+        }
+
+               document.getElementById('addBtn').onclick = () => {
+            const t = document.getElementById('newTitle'), a = document.getElementById('newAuthor');
+            if(!t.value) return alert("Title required");
+
+            // Create the new book using the info we just "Found" (or blank if nothing found)
+            const newBook = {
+                Title: t.value, 
+                Author: a.value,
+                ISBN: fetchedISBN || "", // Use the found ISBN
+                Pages: fetchedPages || "", // Use the found Pages
+                Status: 'Want to read'
+            };
+
+            displayBooks([newBook], true);
+            
+            // Clear everything for the next book
+            t.value = ''; 
+            a.value = '';
+            fetchedISBN = ""; 
+            fetchedPages = "";
+            
+            saveToLocalStorage();
+            updateBookshelf(); // Refresh the shelf to show the new book!
+        };
+
+
+              // UPDATED IMPORT: Now checks for duplicates!
+        document.getElementById('csvFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const csvText = event.target.result;
+                const rows = csvText.split('\n').filter(r => r.trim() !== '');
+                const header = rows[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(h => h.trim().replace(/^"|"$/g, ''));
+                const importedBooks = rows.slice(1).map(row => {
+                    const vals = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, ''));
+                    let b = {};
+                    header.forEach((h, i) => b[h] = vals[i] || '');
+                    return b;
+                });
+
+                // --- NEW DUPLICATE CHECK ---
+                const existingBooks = document.querySelectorAll('#libraryTableBody tr');
+                const existingISBNs = [];
+                const existingTitles = [];
+                
+                existingBooks.forEach(row => {
+                    const isbn = row.cells[2].querySelector('input').value; // ISBN is in column 3
+                    const title = row.cells[0].querySelector('input').value; // Title is in column 1
+                    if (isbn) existingISBNs.push(isbn);
+                    if (title) existingTitles.push(title.toLowerCase());
+                });
+
+                // Check each imported book for duplicates
+                const duplicates = [];
+                const newBooks = [];
+                
+                importedBooks.forEach(book => {
+                    const hasISBNDuplicate = book.ISBN && existingISBNs.includes(book.ISBN);
+                    const hasTitleDuplicate = book.Title && existingTitles.includes(book.Title.toLowerCase());
+                    
+                    if (hasISBNDuplicate || hasTitleDuplicate) {
+                        duplicates.push(book); // Found a duplicate!
+                    } else {
+                        newBooks.push(book); // This is a new book
+                    }
+                });
+
+                // If there are duplicates, show the special popup
+                if (duplicates.length > 0) {
+                    showDuplicatePopup(duplicates, newBooks);
+                } else {
+                    // If no duplicates, just add all the new books
+                    displayBooks(newBooks, true);
+                    saveToLocalStorage();
+                    updateBookshelf();
+                    alert("Imported " + newBooks.length + " books!");
+                }
+            };
+            reader.readAsText(file);
+        });
+        async function displayRatedBooks() {
+            const container = document.getElementById('bookCoversContainer');
+            container.innerHTML = '<p style="color:#443024;">⌛ Loading your favorites...</p>';
+
+            const selectedYear = document.getElementById('yearFilter').value;
+            const selectedMonth = document.getElementById('monthFilter').value;
+
+            // 1. Get all books from the Library Table
+            const rows = document.querySelectorAll('#libraryTableBody tr');
+            let favoriteBooks = [];
+
+            rows.forEach(row => {
+                const title = row.cells[0].querySelector('input').value;
+                const author = row.cells[1].querySelector('input').value;
+                const isbn = row.cells[2].querySelector('input').value;
+                const finishedDate = row.cells[5].querySelector('input').value; // YYYY-MM-DD
+                const rating = parseFloat(row.dataset.rating) || 0;
+
+                // 2. Filter for 5 stars ONLY
+                if (rating === 5) {
+                    let matchDate = true;
+                    if (finishedDate) {
+                        const [year, month, day] = finishedDate.split('-');
+                        if (selectedYear !== 'all' && year !== selectedYear) matchDate = false;
+                        if (selectedMonth !== 'all' && month !== selectedMonth) matchDate = false;
+                    } else if (selectedYear !== 'all' || selectedMonth !== 'all') {
+                        // If user picks a date filter, but book has no date, hide it
+                        matchDate = false;
+                    }
+
+                    if (matchDate) {
+                        favoriteBooks.push({ title, author, isbn, rating });
+                    }
+                }
+            });
+
+           if (favoriteBooks.length === 0) {
+    // Get the selected year and month for smart messages
+    const selectedYear = document.getElementById('yearFilter').value;
+    const selectedMonth = document.getElementById('monthFilter').value;
+    
+    // Special message for Jan-June 2025
+    if (selectedYear === '2025' && selectedMonth !== 'all' && parseInt(selectedMonth) >= 1 && parseInt(selectedMonth) <= 6) {
+        container.innerHTML = '<p style="color:#443024;">My inner bookworm was still loading... 📚</p>';
+        return;
+    }
+    
+    // Special message for all of 2025 when selecting "All Months"
+    if (selectedYear === '2025' && selectedMonth === 'all') {
+        container.innerHTML = '<p style="color:#443024;">My inner bookworm was still loading... 📚</p>';
+        return;
+    }
+    
+    // Check if you read ANY books during the selected period
+    const rows = document.querySelectorAll('#libraryTableBody tr');
+    let hadBooksInPeriod = false;
+    
+    rows.forEach(row => {
+        const finishedDate = row.cells[5].querySelector('input').value;
+        const status = row.cells[6].querySelector('select').value;
+        
+        if (status === 'Read' && finishedDate) {
+            const [year, month] = finishedDate.split('-');
+            let matchDate = true;
+            if (selectedYear !== 'all' && year !== selectedYear) matchDate = false;
+            if (selectedMonth !== 'all' && month !== selectedMonth) matchDate = false;
+            
+            if (matchDate) {
+                hadBooksInPeriod = true;
+            }
+        }
+    });
+    
+    if (hadBooksInPeriod) {
+        container.innerHTML = '<p style="color:#443024;">No 5-star books for this period—nothing made the cut 🤷</p>';
+    } else {
+        container.innerHTML = '<p style="color:#443024;">The bookworm was hibernating… 🐛</p>';
+    }
+    return;
+}
+
+
+            container.innerHTML = ''; // Clear loading text
+
+            // 3. Loop through favorites and draw them
+            for (const book of favoriteBooks) {
+                const bookWrapper = document.createElement('div');
+                bookWrapper.style.width = '200px';
+                bookWrapper.style.textAlign = 'center';
+                bookWrapper.style.marginBottom = '30px';
+
+                               // 4. THE SHARPENED COVER LOGIC
+                const imgUrl = book.isbn ? `https://books.google.com/books/content?vid=ISBN:${book.isbn}&printsec=frontcover&img=1&zoom=1` : "";
+
+const coverImg = document.createElement('img');
+coverImg.style.width = '150px';   
+coverImg.style.height = '225px';  
+coverImg.style.borderRadius = '8px';
+coverImg.style.boxShadow = '0 5px 15px rgba(0,0,0,0.2)';
+coverImg.style.backgroundColor = '#ddd';
+coverImg.alt = book.title;
+coverImg.src = imgUrl;
+
+coverImg.onerror = function() {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'book-cover-placeholder';
+    placeholder.textContent = book.title;
+    if (this.parentNode) {
+        this.parentNode.replaceChild(placeholder, this);
+    }
+};
+
+                if (book.isbn) {
+                    // Changing -M to -L for the LARGE high-resolution version!
+                    coverImg.src = `https://covers.openlibrary.org/b/isbn/${book.isbn}-L.jpg?default=false`;
+                } else {
+                    coverImg.src = ""; 
+                }
+
+                // --- THE IMAGE GUARD ---
+                // If the image fails to load, replace it with our "Paper Cover"
+                coverImg.onerror = function() {
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'book-cover-placeholder';
+                    placeholder.textContent = book.title;
+                    bookWrapper.replaceChild(placeholder, this);
+                };
+
+                // Try to find cover by ISBN
+                if (book.isbn) {
+                    coverImg.src = `https://covers.openlibrary.org/b/isbn/${book.isbn}-M.jpg?default=false`;
+                } else {
+                    // Trigger the error immediately to show placeholder if no ISBN
+                    coverImg.src = ""; 
+                }
+                // --- END IMAGE GUARD ---
+
+
+                // 5. DRAW THE HEARTS ♥️
+                const heartsDiv = document.createElement('div');
+                heartsDiv.style.marginTop = '10px';
+                heartsDiv.style.fontSize = '22px';
+                heartsDiv.style.color = '#e31b23'; // Nice red color
+                
+             
+
+
+                bookWrapper.appendChild(coverImg);
+                bookWrapper.appendChild(heartsDiv);
+                container.appendChild(bookWrapper);
+            }
+        }
+
+
+                // 6. STARTUP: This runs immediately when the page opens
+                 window.onload = () => {
+            const saved = localStorage.getItem('myBookData');
+            if (saved) {
+                displayBooks(JSON.parse(saved));
+                setTimeout(() => {
+                    updateBookshelf();
+                }, 100); 
+            }
+
+            const savedGoal = localStorage.getItem('myReadingGoal');
+            if (savedGoal) {
+                document.getElementById('readingGoalInput').value = savedGoal;
+                updateGoalBar();
+            }
+
+            populateMonthlyYearFilters();
+            displaySavedMonthlyWinners(); // THIS IS THE NEW LINE
+	    checkMonthlyMission();
+        };
+
+        // This function automatically fills the Year dropdown
+        function populateYearFilter() {
+            const yearSelect = document.getElementById('yearFilter');
+            const currentYear = new Date().getFullYear();
+            const startYear = 2025; // The year you want to start from
+
+            // Loop from 2025 up to the current year
+            for (let y = startYear; y <= currentYear; y++) {
+                const option = document.createElement('option');
+                option.value = y.toString();
+                option.textContent = y.toString();
+                yearSelect.appendChild(option);
+            }
+        }
+        
+        // Call it immediately so the box is filled when the page loads
+        populateYearFilter();
+        // Make the year and month filters update the display when changed
+        document.getElementById('yearFilter').addEventListener('change', displayRatedBooks);
+        document.getElementById('monthFilter').addEventListener('change', displayRatedBooks);
+
+
+            function updateOverviewStats() {
+    const rows = document.querySelectorAll('#libraryTableBody tr');
+    const filterFromDate = document.getElementById('filter-from').value;
+    const filterToDate = document.getElementById('filter-to').value;
+
+    // All-time totals (for top two boxes)
+    let totalReadAllTime = 0;
+    let totalPagesAllTime = 0;
+
+    // Filtered status counters (for the 5 boxes below)
+    let countWant = 0;
+    let countCurrent = 0;
+    let countRead = 0;
+    let countDNF = 0;
+    let countTBR = 0;
+
+    rows.forEach(row => {
+        const status = row.cells[6].querySelector('select').value;
+        const pages = parseInt(row.cells[3].querySelector('input').value) || 0;
+        const startedDate = row.cells[4].querySelector('input').value;  // Change from finishedDate to startedDate
+        
+        // All-time totals: count only if Read
+        if (status === 'Read') {
+            totalReadAllTime++;
+            totalPagesAllTime += pages;
+        }
+        
+        // Check if the started date is within the filter range
+        let withinDateRange = true;
+        if (filterFromDate || filterToDate) {
+            if (startedDate && filterFromDate && startedDate < filterFromDate) withinDateRange = false;
+            if (startedDate && filterToDate && startedDate > filterToDate) withinDateRange = false;
+        }
+        
+        // Filtered counts by status (no pages here)
+        if (withinDateRange) {
+            if (status === 'Want to read') countWant++;
+            else if (status === 'Currently reading') countCurrent++;
+            else if (status === 'Read') countRead++;
+            else if (status === 'DNF') countDNF++;
+            else if (status === 'TBR') countTBR++;
+        }
+    });
+
+    // Update top two boxes (all-time)
+    document.getElementById('stat-total-books').textContent = totalReadAllTime;
+    document.getElementById('stat-total-pages').textContent = totalPagesAllTime.toLocaleString();
+
+    // Update filtered status boxes
+    document.getElementById('stat-want').textContent = countWant;
+    document.getElementById('stat-current').textContent = countCurrent;
+    document.getElementById('stat-read').textContent = countRead;
+    document.getElementById('stat-dnf').textContent = countDNF;
+    document.getElementById('stat-tbr').textContent = countTBR;
+    
+// --- NEW: CALCULATE READING INSIGHTS ---
+    const allReadBooks = Array.from(rows).filter(row => {
+        const status = row.cells[6].querySelector('select').value;
+        const pages = parseInt(row.cells[3].querySelector('input').value) || 0;
+        return status === 'Read' && pages > 0;
+    });
+
+    if (allReadBooks.length > 0) {
+        let longest = allReadBooks[0];
+        let shortest = allReadBooks[0];
+        let totalPagesForAvg = 0;
+
+        allReadBooks.forEach(row => {
+            const pages = parseInt(row.cells[3].querySelector('input').value);
+            totalPagesForAvg += pages;
+
+            const longestPages = parseInt(longest.cells[3].querySelector('input').value);
+            const shortestPages = parseInt(shortest.cells[3].querySelector('input').value);
+
+            if (pages > longestPages) longest = row;
+            if (pages < shortestPages) shortest = row;
+        });
+
+        document.getElementById('insight-longest').innerHTML = 
+            `${longest.cells[0].querySelector('input').value}<br><small>(${longest.cells[3].querySelector('input').value} pages)</small>`;
+        
+        document.getElementById('insight-shortest').innerHTML = 
+            `${shortest.cells[0].querySelector('input').value}<br><small>(${shortest.cells[3].querySelector('input').value} pages)</small>`;
+
+        const avg = Math.round(totalPagesForAvg / allReadBooks.length);
+        document.getElementById('insight-average').textContent = `${avg} pages`;
+    } else {
+        document.getElementById('insight-longest').textContent = "None yet!";
+        document.getElementById('insight-shortest').textContent = "None yet!";
+        document.getElementById('insight-average').textContent = "0 pages";
+    }
+    // --- NEW: COFFEE CONVERTER MATH ---
+    const totalCups = Math.round(totalPagesAllTime / 100);
+    document.getElementById('coffee-pages').textContent = totalPagesAllTime.toLocaleString();
+    document.getElementById('coffee-cups').textContent = totalCups;
+
+    // --- NEW: SVG 3D EXPLODED PIE BRAIN ---
+    const ratingCounts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    let totalRated = 0;
+
+    rows.forEach(row => {
+        const r = Math.floor(parseFloat(row.dataset.rating || 0));
+        if (r >= 1 && r <= 5) {
+            ratingCounts[r]++;
+            totalRated++;
+        }
+    });
+
+    const svg = document.getElementById('pie-svg');
+    svg.innerHTML = ''; // Clear the canvas
+    const colors = { 5: "#933b5b", 4: "#ec9c9d", 3: "#ab7e67", 2: "#e3d6bf", 1: "#f6eeee" };
+
+    if (totalRated > 0) {
+        let cumulativePercent = 0;
+
+        [5, 4, 3, 2, 1].forEach(rating => {
+            const count = ratingCounts[rating];
+            const percent = count / totalRated;
+            
+            if (count > 0) {
+                // 1. Calculate the shape of the wedge
+                const startX = Math.cos(2 * Math.PI * cumulativePercent);
+                const startY = Math.sin(2 * Math.PI * cumulativePercent);
+                const endX = Math.cos(2 * Math.PI * (cumulativePercent + percent));
+                const endY = Math.sin(2 * Math.PI * (cumulativePercent + percent));
+                const largeArcFlag = percent > 0.5 ? 1 : 0;
+
+                // 2. Calculate the "Explosion" (moving the piece out)
+                const midAngle = 2 * Math.PI * (cumulativePercent + percent / 2);
+                const explodeX = Math.cos(midAngle) * 3; // Move 3 units out
+                const explodeY = Math.sin(midAngle) * 3;
+
+                // 3. Create the drawing "Path"
+                const pathData = [
+                    `M ${50 + explodeX} ${50 + explodeY}`, // Start at center (pushed out)
+                    `L ${50 + (startX * 45) + explodeX} ${50 + (startY * 45) + explodeY}`, // Line to edge
+                    `A 45 45 0 ${largeArcFlag} 1 ${50 + (endX * 45) + explodeX} ${50 + (endY * 45) + explodeY}`, // Curve
+                    `Z` // Close the shape
+                ].join(' ');
+
+                // 4. Put the piece on the canvas
+                const pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                pathEl.setAttribute("d", pathData);
+                pathEl.setAttribute("fill", colors[rating]);
+                pathEl.setAttribute("stroke", "#443024");
+                pathEl.setAttribute("stroke-width", "0.5");
+                svg.appendChild(pathEl);
+
+                cumulativePercent += percent;
+            }
+            document.getElementById(`pie-count-${rating}`).textContent = count;
+        });
+    }
+        // --- GENRE PIE BRAIN (Exploded SVG Style) ---
+    const genreCounts = {};
+    let totalGenreBooks = 0;
+    rows.forEach(row => {
+        const genre = row.querySelectorAll('select')[1].value;
+        if (genre) { genreCounts[genre] = (genreCounts[genre] || 0) + 1; totalGenreBooks++; }
+    });
+
+    const genreColors = {
+        'Romance': "#933b5b", 'Drama': "#ec9c9d", 'Fantasy': "#ab7e67", 
+        'Mystery': "#928e5e", 'Thriller': "#443024", 'Non-Fiction': "#e3d6bf", 
+        'Sci-Fi': "#7f5836", 'Historical': "#d3dfca", 'Other': "#f6eeee"
+    };
+
+    const genreSvg = document.getElementById('genre-pie-svg');
+    const genreLegend = document.getElementById('genre-legend');
+    genreSvg.innerHTML = ''; genreLegend.innerHTML = '';
+
+    if (totalGenreBooks > 0) {
+        let cumulativePercent = 0;
+        Object.keys(genreCounts).forEach(genre => {
+            const count = genreCounts[genre];
+            const percent = count / totalGenreBooks;
+            const color = genreColors[genre] || "#ccc";
+
+            const startX = Math.cos(2 * Math.PI * cumulativePercent);
+            const startY = Math.sin(2 * Math.PI * cumulativePercent);
+            const endX = Math.cos(2 * Math.PI * (cumulativePercent + percent));
+            const endY = Math.sin(2 * Math.PI * (cumulativePercent + percent));
+            const midAngle = 2 * Math.PI * (cumulativePercent + percent / 2);
+            
+            // EXACT SAME EXPLOSION MATH AS RATINGS PIE
+            const explodeX = Math.cos(midAngle) * 3; 
+            const explodeY = Math.sin(midAngle) * 3;
+            const largeArcFlag = percent > 0.5 ? 1 : 0;
+
+            const pathData = [`M ${50 + explodeX} ${50 + explodeY}`, `L ${50 + (startX * 45) + explodeX} ${50 + (startY * 45) + explodeY}`, `A 45 45 0 ${largeArcFlag} 1 ${50 + (endX * 45) + explodeX} ${50 + (endY * 45) + explodeY}`, `Z`].join(' ');
+
+            const pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            pathEl.setAttribute("d", pathData);
+            pathEl.setAttribute("fill", color);
+            pathEl.setAttribute("stroke", "#443024");
+            pathEl.setAttribute("stroke-width", "0.5");
+            genreSvg.appendChild(pathEl);
+
+            const legendItem = document.createElement('div');
+            legendItem.style.display = 'flex';
+            legendItem.style.alignItems = 'center';
+            legendItem.style.gap = '8px';
+            legendItem.innerHTML = `<div style="width:10px; height:12px; background:${color};"></div> <span>${genre}: <b>${count}</b></span>`;
+            genreLegend.appendChild(legendItem);
+            cumulativePercent += percent;
+        });
+    }
+    // --- NEW: THE READING FORTUNE TELLER BRAIN ---
+    const unreadCount = countWant + countTBR; // Total unread books
+    
+    // 1. Calculate reading pace (books finished in the last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const booksLastMonth = Array.from(rows).filter(row => {
+        const status = row.cells[6].querySelector('select').value;
+        const finishedDate = row.cells[5].querySelector('input').value;
+        return status === 'Read' && finishedDate && new Date(finishedDate) >= thirtyDaysAgo;
+    }).length;
+
+    // We set a minimum pace of 1 book a month just so the math doesn't break
+    const pace = Math.max(booksLastMonth, 1); 
+    
+    // 2. Calculate how many months it will take
+    const monthsToFinish = unreadCount / pace;
+    
+    // 3. Find the future date
+    const today = new Date();
+    const futureDate = new Date(today.getFullYear(), today.getMonth() + Math.round(monthsToFinish), 1);
+    const finishMonthName = futureDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+    // 4. Update the display
+    document.getElementById('pace-number').textContent = pace;
+    document.getElementById('tbr-count-stat').textContent = unreadCount;
+    
+    if (unreadCount > 0) {
+        document.getElementById('finish-date-prediction').textContent = finishMonthName;
+    } else {
+        document.getElementById('finish-date-prediction').textContent = "You're all caught up!";
+    }
+
+} 
+// Add event listeners for filter changes
+const filterFromInput = document.getElementById('filter-from');
+const filterToInput = document.getElementById('filter-to');
+if (filterFromInput) filterFromInput.addEventListener('change', updateOverviewStats);
+if (filterToInput) filterToInput.addEventListener('change', updateOverviewStats);
+filterFromInput.addEventListener('change', function() {
+    const toDateInput = document.getElementById('filter-to');
+    toDateInput.min = this.value;
+});
+
+filterToInput.addEventListener('change', function() {
+    const fromDateInput = document.getElementById('filter-from');
+    fromDateInput.max = this.value;
+});
+
+// Preset button functionality
+document.querySelectorAll('.filter-preset-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const preset = this.dataset.preset;
+        const today = new Date();
+        let fromDate, toDate;
+        if (preset === 'thisweek') {
+            fromDate = new Date(today);
+            fromDate.setDate(today.getDate() - today.getDay());
+            toDate = today;
+        } else if (preset === 'thismonth') {
+            fromDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            toDate = today;
+        } else if (preset === 'thisyear') {
+            fromDate = new Date(today.getFullYear(), 0, 1);
+            toDate = today;
+        }
+        // Format dates as YYYY-MM-DD
+        document.getElementById('filter-from').value = fromDate.toISOString().split('T')[0];
+        document.getElementById('filter-to').value = toDate.toISOString().split('T')[0];
+        updateOverviewStats();
+    });
+});
+        // THE SHELF MAGIC: This draws the books on the shelf!
+                     function updateBookshelf() {
+            const container = document.getElementById('bookshelf-container');
+            if (!container) return;
+            container.innerHTML = ''; 
+
+            const rows = document.querySelectorAll('#libraryTableBody tr');
+            if (rows.length === 0) return;
+
+            function getLocalImage(fileName) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'curio';
+                const img = document.createElement('img');
+                img.className = 'curio-img';
+                img.src = 'images/' + fileName + '.png'; 
+                wrapper.appendChild(img);
+                return wrapper;
+            }
+
+            let currentShelf = document.createElement('div');
+            currentShelf.className = 'shelf';
+            container.appendChild(currentShelf);
+
+            let shelfNumber = 1;
+            let booksOnCurrentShelf = 0;
+
+            rows.forEach((row, index) => {
+                let maxBooks = [1, 3, 5, 8].includes(shelfNumber) ? 18 : 20;
+
+                if (booksOnCurrentShelf === 0 && shelfNumber === 1) {
+                    const p2 = getLocalImage('plant2');
+                    p2.style.transform = 'translateY(10px)';
+                    currentShelf.appendChild(p2);
+                }
+
+                if (shelfNumber === 5 && booksOnCurrentShelf === 9) {
+                    currentShelf.appendChild(getLocalImage('candle'));
+                }
+
+                const title = row.cells[0].querySelector('input').value;
+                const author = row.cells[1].querySelector('input').value; 
+                const status = row.cells[6].querySelector('select').value;
+                const rating = parseFloat(row.dataset.rating) || 0; 
+
+                const bookDiv = document.createElement('div');
+                bookDiv.className = 'shelf-book';
+                bookDiv.textContent = title;
+
+                // --- THE NEW CLICK LOGIC ---
+                bookDiv.onclick = (e) => {
+                    e.stopPropagation();
+                    const masterTag = document.getElementById('master-book-tag');
+                    if (!masterTag) return; // Safety check
+
+                    let hearts = "";
+                    if (rating > 0) {
+                        for(let i=1; i<=Math.floor(rating); i++) hearts += "♥️";
+                        if (rating % 1 !== 0) hearts += "♥"; 
+                    } else { hearts = "Unrated"; }
+
+                    masterTag.innerHTML = `
+                        <strong style="display:block; margin-bottom:4px;">${title}</strong>
+                        <span style="font-size:12px; display:block; margin-bottom:5px;">by ${author}</span>
+                        <span style="color:#e31b23; font-size:18px;">${hearts}</span>
+                    `;
+
+                    masterTag.style.display = 'block';
+                    // We pop it right where your mouse clicked!
+                    masterTag.style.left = (e.clientX - 90) + 'px';
+                    masterTag.style.top = (e.clientY - 130) + 'px';
+                };
+
+                const randomHeight = Math.floor(Math.random() * (190 - 150 + 1)) + 150;
+                let calculatedWidth = (title.length * 3) + 20;
+                const finalWidth = Math.min(Math.max(calculatedWidth, 30), 70);
+                bookDiv.style.height = randomHeight + 'px';
+                bookDiv.style.width = finalWidth + 'px';
+
+                if (status === 'Read') {
+                    const myColors = ['#ab7e67', '#7f5836', '#aa7f66', '#ec9c9d', '#933b5b', '#e3d6bf'];
+                    const randomColor = myColors[Math.floor(Math.random() * myColors.length)];
+                    bookDiv.style.backgroundColor = randomColor;
+                    bookDiv.style.color = (randomColor === '#e3d6bf' || randomColor === '#ec9c9d') ? '#443024' : 'white';
+                } else {
+                    bookDiv.style.backgroundColor = 'white';
+                    bookDiv.style.color = '#443024';
+                }
+
+                currentShelf.appendChild(bookDiv);
+                booksOnCurrentShelf++;
+
+                if (shelfNumber === 3 && booksOnCurrentShelf === maxBooks) {
+                    currentShelf.appendChild(getLocalImage('ends'));
+                }
+                if (shelfNumber === 8 && booksOnCurrentShelf === maxBooks) {
+                    const p1 = getLocalImage('plant1');
+                    p1.style.transform = 'translateY(10px)';
+                    currentShelf.appendChild(p1);
+                }
+
+                if (booksOnCurrentShelf >= maxBooks && (index + 1) < rows.length) {
+                    currentShelf = document.createElement('div');
+                    currentShelf.className = 'shelf';
+                    container.appendChild(currentShelf);
+                    shelfNumber++;
+                    booksOnCurrentShelf = 0;
+                }
+            });
+        }
+
+        // THE SEARCH MAGIC: This filters your list as you type
+        document.getElementById('librarySearch').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase(); // What you typed, in lowercase
+            const rows = document.querySelectorAll('#libraryTableBody tr');
+
+            rows.forEach(row => {
+                // Get the Title and Author from the input boxes in each row
+                const title = row.cells[0].querySelector('input').value.toLowerCase();
+                const author = row.cells[1].querySelector('input').value.toLowerCase();
+
+                // If the title OR the author has the letters you typed...
+                if (title.includes(searchTerm) || author.includes(searchTerm)) {
+                    row.style.display = ""; // ...show the row!
+                } else {
+                    row.style.display = "none"; // ...hide the row!
+                }
+            });
+        });
+        let activeFilters = {}; // This keeps track of what you've checked
+        function toggleFilterMenu(colIndex, headerElement) {
+            const menu = document.getElementById('shared-filter-menu');
+            
+            // If we click the same box twice, close it
+            if (menu.style.display === 'block' && menu.dataset.col === colIndex.toString()) {
+                menu.style.display = 'none';
+                return;
+            }
+
+            // 1. Position the menu right under the box you clicked
+            const rect = headerElement.getBoundingClientRect();
+            menu.style.display = 'block';
+            menu.style.left = rect.left + 'px';
+            menu.style.top = (rect.bottom + window.scrollY) + 'px';
+            menu.dataset.col = colIndex;
+
+            // --- DATE FILTER UI (For Started and Finished) ---
+            if (colIndex === 4 || colIndex === 5) {
+                menu.innerHTML = `
+                    <div style="margin-bottom: 10px;">
+                        <label style="font-size: 12px; display: block;">Pick a Date:</label>
+                        <input type="date" class="filter-date-range" id="col-filter-single" style="width: 100%;" onchange="this.blur()">
+                    </div>
+                    <div class="filter-actions">
+                        <button onclick="applySingleDateFilter(${colIndex})">Apply</button>
+                        <button onclick="clearColumnFilter(${colIndex})">Clear</button>
+                    </div>
+                `;
+                return;
+            }
+
+                       // --- NORMAL CHECKBOX UI ---
+            const rows = document.querySelectorAll('#libraryTableBody tr');
+            let options = new Set();
+            rows.forEach(row => {
+                const cell = row.cells[colIndex];
+                let val = "";
+
+                // SPECIAL FIX: If we are looking at the Rating column (index 7)
+                if (colIndex === 7) {
+                    val = row.dataset.rating || "0"; // Look at the hidden number!
+                } 
+                // For all other columns, look at input, select, or text
+                else if (cell.querySelector('input')) {
+                    val = cell.querySelector('input').value;
+                } else if (cell.querySelector('select')) {
+                    val = cell.querySelector('select').value;
+                } else {
+                    val = cell.textContent;
+                }
+                
+                if (val.trim() !== "") options.add(val.trim());
+            });
+
+
+            menu.innerHTML = `
+                <input type="text" class="filter-search" placeholder="Search options..." oninput="searchFilterOptions(this)">
+                <div class="filter-list">
+                    ${Array.from(options).sort().map(opt => `
+                        <label class="filter-item">
+                            <input type="checkbox" value="${opt}" 
+                                   ${(activeFilters[colIndex] || []).includes(opt) ? 'checked' : ''} 
+                                   onchange="updateActiveFilters(${colIndex}, this)">
+                            ${opt}
+                        </label>
+                    `).join('')}
+                </div>
+                <div class="filter-actions">
+                    <button onclick="clearColumnFilter(${colIndex})">Clear</button>
+                    <button onclick="document.getElementById('shared-filter-menu').style.display='none'">Apply</button>
+                </div>
+            `;
+        }
+
+
+        // This hides options in the menu as you type in the menu's search box
+        function searchFilterOptions(input) {
+            const term = input.value.toLowerCase();
+            const items = input.nextElementSibling.querySelectorAll('.filter-item');
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.includes(term) ? "flex" : "none";
+            });
+        }
+
+        // This remembers what you checked and hides/shows rows
+                // This function handles the "Apply" button for the Date filters
+        function applySingleDateFilter(colIndex) {
+            const selectedDate = document.getElementById('col-filter-single').value;
+            
+            if (selectedDate) {
+                // We save the date in a little list [ ] so the filter brain can read it
+                activeFilters[colIndex] = [selectedDate]; 
+            } else {
+                // If you left it blank, clear the filter for this column
+                delete activeFilters[colIndex];
+            }
+            
+            // Run the filter and close the menu
+            applyAllFilters();
+            document.getElementById('shared-filter-menu').style.display = 'none';
+        }
+
+function updateActiveFilters(colIndex, checkbox) {
+            if (!activeFilters[colIndex]) activeFilters[colIndex] = [];
+            
+            if (checkbox.checked) {
+                activeFilters[colIndex].push(checkbox.value);
+            } else {
+                activeFilters[colIndex] = activeFilters[colIndex].filter(v => v !== checkbox.value);
+            }
+            applyAllFilters();
+        }
+
+        function clearColumnFilter(colIndex) {
+            delete activeFilters[colIndex];
+            applyAllFilters();
+            document.getElementById('shared-filter-menu').style.display = 'none';
+        }
+
+                  function applyAllFilters() {
+            const rows = document.querySelectorAll('#libraryTableBody tr');
+            rows.forEach(row => {
+                let isVisible = true;
+                
+                for (let col in activeFilters) {
+                    const filterValues = activeFilters[col];
+                    if (!filterValues || filterValues.length === 0) continue;
+
+                    const cell = row.cells[col];
+                    const input = cell.querySelector('input');
+                    const select = cell.querySelector('select');
+                    
+                    let cellVal = "";
+
+                    // SPECIAL FIX FOR RATING (Column 7):
+                    // Look at the secret number in the row's memory instead of the stars
+                    if (col == 7) {
+                        cellVal = row.dataset.rating || "0";
+                    } 
+                    // Normal check for all other columns
+                    else if (input) {
+                        cellVal = input.value;
+                    } else if (select) {
+                        cellVal = select.value;
+                    } else {
+                        cellVal = cell.textContent.trim();
+                    }
+
+                    // Compare the row's value to your checked boxes
+                    if (!filterValues.includes(cellVal)) {
+                        isVisible = false;
+                        break;
+                    }
+                }
+                row.style.display = isVisible ? "" : "none";
+            });
+        }
+
+
+        // THE EXPORT MAGIC: This turns your table into a file you can download
+        function exportToCSV() {
+            const rows = document.querySelectorAll('#libraryTableBody tr');
+            
+            // 1. Create the header row (the top of your Excel sheet)
+            let csvContent = "Title,Author,ISBN,Pages,Started,Finished,Status,Rating\n";
+
+            // 2. Loop through every book in your library
+            rows.forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                const title = '"' + inputs[0].value.replace(/"/g, '""') + '"';
+                const author = '"' + inputs[1].value.replace(/"/g, '""') + '"';
+                const isbn = inputs[2].value;
+                const pages = inputs[3].value;
+                const started = inputs[4].value;
+                const finished = inputs[5].value;
+                const status = row.querySelector('select').value;
+                const rating = row.dataset.rating || "0";
+
+                // 3. Combine them into one line separated by commas
+                csvContent += `${title},${author},${isbn},${pages},${started},${finished},${status},${rating}\n`;
+            });
+
+            // 4. Tell the browser to "download" this text as a file
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "my_updated_books.csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        // THE CLEAR ALL MAGIC: This resets everything at once
+        function clearEveryFilter() {
+            // 1. Empty the "activeFilters" notebook
+            activeFilters = {};
+            
+            // 2. Clear the main search bar text
+            document.getElementById('librarySearch').value = "";
+            
+            // 3. Show all rows again
+            applyAllFilters();
+            
+            // 4. Close the menu if it was open
+            document.getElementById('shared-filter-menu').style.display = 'none';
+
+            console.log("All filters cleared!");
+        }
+        async function lookupBookDetails() {
+            const titleInput = document.getElementById('newTitle');
+            const authorInput = document.getElementById('newAuthor');
+
+            if (!titleInput.value) return alert("Please type a title first!");
+
+            const lookupBtn = document.getElementById('lookupBtn');
+            lookupBtn.textContent = "⌛ Searching...";
+            lookupBtn.disabled = true;
+
+            const title = titleInput.value;
+            const author = authorInput.value || "";
+
+            try {
+                // --- STEP 1: OPEN LIBRARY ---
+                try {
+                    const olUrl = `https://openlibrary.org/search.json?title=${encodeURIComponent(title)}${author ? '&author=' + encodeURIComponent(author) : ''}`;
+                    const response = await fetch(olUrl);
+                    const data = await response.json();
+
+                    if (data.docs && data.docs.length > 0) {
+                        const book = data.docs[0];
+                        const p = book.number_of_pages_median ||
+                                (book.number_of_pages ? book.number_of_pages[0] : "") ||
+                                book.page_count || "";
+                        const i = book.isbn ? book.isbn[0] : "";
+                        showPopup(book.title, (book.author_name ? book.author_name[0] : "Unknown"), p, i);
+                        return;
+                    }
+                } catch (e) { console.error("Open Library error:", e); }
+
+                // --- STEP 2: GOOGLE BOOKS FALLBACK ---
+                try {
+                    const googleUrl = `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(title)}${author ? '+inauthor:' + encodeURIComponent(author) : ''}`;
+                    const response = await fetch(googleUrl);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.items && data.items.length > 0) {
+                            const book = data.items[0].volumeInfo;
+                            let gIsbn = "";
+                            if (book.industryIdentifiers) {
+                                const i13 = book.industryIdentifiers.find(id => id.type.includes("13"));
+                                gIsbn = i13 ? i13.identifier : book.industryIdentifiers[0].identifier;
+                            }
+                            showPopup(book.title, (book.authors ? book.authors[0] : "Unknown"), book.pageCount || "", gIsbn);
+                            return;
+                        }
+                    }
+                } catch (e) { console.error("Google Books error:", e); }
+
+                alert("No results found for \"" + title + "\". You can still add it manually!");
+            } finally {
+                lookupBtn.textContent = "🔍 Lookup Details";
+                lookupBtn.disabled = false;
+            }
+        }
+
+        // Updated Helper to show the popup
+        function showPopup(title, author, pages, isbn) {
+            fetchedPages = pages || "";
+            fetchedISBN = isbn || "";
+
+            document.getElementById('newTitle').value = title;
+            document.getElementById('newAuthor').value = author;
+
+            document.getElementById('modalBookTitle').textContent = title;
+            document.getElementById('modalBookAuthor').textContent = "Author: " + author;
+            document.getElementById('modalBookPages').textContent = fetchedPages ? "Pages: " + fetchedPages : "Pages: Not found";
+            document.getElementById('modalBookISBN').textContent = fetchedISBN ? "ISBN: " + fetchedISBN : "ISBN: Not found";
+
+            document.getElementById('lookupModal').style.display = 'flex';
+        }
+        // This shows the duplicate popup with checkboxes
+        function showDuplicatePopup(duplicates, newBooks) {
+            const duplicateList = document.getElementById('duplicateList');
+            duplicateList.innerHTML = ''; // Clear any old duplicates
+            
+            // Create a checkbox for each duplicate book
+            duplicates.forEach((book, index) => {
+                const label = document.createElement('label');
+                label.style.display = 'block';
+                label.style.marginBottom = '10px';
+                label.style.cursor = 'pointer';
+                label.style.padding = '10px';
+                label.style.borderRadius = '5px';
+                label.style.backgroundColor = '#fff9f9';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `duplicate-${index}`;
+                checkbox.value = index;
+                checkbox.style.marginRight = '10px';
+                checkbox.style.cursor = 'pointer';
+                
+                const textSpan = document.createElement('span');
+                textSpan.textContent = `"${book.Title}" by ${book.Author}`;
+                textSpan.style.fontWeight = 'bold';
+                textSpan.style.color = '#443024';
+                
+                label.appendChild(checkbox);
+                label.appendChild(textSpan);
+                duplicateList.appendChild(label);
+            });
+            
+            // Store the duplicate and new books for later use
+            window.pendingDuplicates = duplicates;
+            window.pendingNewBooks = newBooks;
+            
+            // Show the popup!
+            document.getElementById('duplicateModal').style.display = 'flex';
+        }
+
+        // This function handles "Add Selected" button
+        function addSelectedDuplicates() {
+            const checkboxes = document.querySelectorAll('#duplicateList input[type="checkbox"]:checked');
+            const selectedDuplicates = [];
+            
+            checkboxes.forEach(checkbox => {
+                const index = checkbox.value;
+                selectedDuplicates.push(window.pendingDuplicates[index]);
+            });
+            
+            // Combine the new books with the selected duplicates
+            const allBooksToAdd = [...window.pendingNewBooks, ...selectedDuplicates];
+            
+            // Add them all to the library
+            displayBooks(allBooksToAdd, true);
+            saveToLocalStorage();
+            updateBookshelf();
+            
+            // Close the popup and show a success message
+            document.getElementById('duplicateModal').style.display = 'none';
+            alert(`Imported ${allBooksToAdd.length} books total!`);
+        }
+
+        // This function handles "Discard All" button
+        function discardAllDuplicates() {
+            // Only add the truly new books (skip the duplicates)
+            displayBooks(window.pendingNewBooks, true);
+            saveToLocalStorage();
+            updateBookshelf();
+            
+            // Close the popup and show a message
+            document.getElementById('duplicateModal').style.display = 'none';
+            alert(`Imported ${window.pendingNewBooks.length} new books!`);
+        }
+
+
+        // Helper to close the popup
+        function closeModal() {
+            document.getElementById('lookupModal').style.display = 'none';
+        }
+
+        // When the user clicks "Add to Library" INSIDE the popup
+        document.getElementById('confirmAddBtn').onclick = () => {
+            const t = document.getElementById('newTitle'), a = document.getElementById('newAuthor');
+            
+            // Create the book using the fetched details
+            const newBook = {
+                Title: t.value, 
+                Author: a.value,
+                ISBN: fetchedISBN || "", 
+                Pages: fetchedPages || "", 
+                Status: 'Want to read'
+            };
+
+            displayBooks([newBook], true);
+            
+            // Clear inputs and close the popup
+            t.value = ''; 
+            a.value = '';
+            closeModal();
+            
+            saveToLocalStorage();
+            updateBookshelf();
+        };
+                // Close the tag only if it exists, to prevent errors
+        window.addEventListener('click', () => { 
+            const masterTag = document.getElementById('master-book-tag');
+            if (masterTag) {
+                masterTag.style.display = 'none'; 
+            }
+        });
+
+        // THE FAVORITES MAGIC: Show only 5-star books
+        function filterByFavorites() {
+            // 1. Clear any current filters first to avoid confusion
+            activeFilters = {};
+            document.getElementById('librarySearch').value = "";
+            
+            // 2. Set the "Rating" filter to only include "5"
+            activeFilters[7] = ["5"]; // Column 7 is our Rating
+            
+            // 3. Apply the filter!
+            applyAllFilters();
+            console.log("Showing only 5-star favorites!");
+        }
+        // 1. This function saves the goal number to your secret notebook
+        function saveGoal() {
+            const goal = document.getElementById('readingGoalInput').value;
+            localStorage.setItem('myReadingGoal', goal);
+        }
+
+        // 2. This function does the math to fill the bar
+                function updateGoalBar() {
+            const goalInput = document.getElementById('readingGoalInput');
+            const progressBar = document.getElementById('goalProgressBar');
+            const percentText = document.getElementById('goalPercentText');
+            const remainingText = document.getElementById('goalRemainingText');
+
+            const goal = parseInt(goalInput.value) || 1;
+            const currentYear = new Date().getFullYear().toString(); // This gets "2026"
+
+            // --- COUNT ONLY THIS YEAR'S BOOKS ---
+            const rows = document.querySelectorAll('#libraryTableBody tr');
+            let readThisYear = 0;
+
+            rows.forEach(row => {
+                const status = row.cells[6].querySelector('select').value;
+                const finishedDate = row.cells[5].querySelector('input').value; // Get the date from the calendar
+
+                if (status === 'Read' && finishedDate) {
+                    const yearOfBook = finishedDate.split('-')[0]; // Get the "2026" part of "2026-04-17"
+                    if (yearOfBook === currentYear) {
+                        readThisYear++;
+                    }
+                }
+            });
+            // -------------------------------------
+
+            const percentage = Math.min(Math.floor((readThisYear / goal) * 100), 100);
+            progressBar.style.width = percentage + "%";
+            percentText.textContent = percentage + "%";
+
+            const remaining = goal - readThisYear;
+            if (remaining > 0) {
+                remainingText.textContent = `You've read ${readThisYear} books in ${currentYear}. Only ${remaining} more to go!`;
+                progressBar.style.backgroundColor = "#ec9c9d"; 
+            } else {
+                remainingText.textContent = `🏆 ${currentYear} Goal achieved! You are a reading superstar!`;
+                progressBar.style.backgroundColor = "#928e5e"; 
+            }
+        }
+        // THE SURPRISE MAGIC: Picks a random book from your TBR/Want to read list
+        function pickNextRead() {
+            const rows = document.querySelectorAll('#libraryTableBody tr');
+            let tbrBooks = [];
+
+            // 1. Find all books you haven't read yet
+            rows.forEach(row => {
+                const title = row.cells[0].querySelector('input').value;
+                const author = row.cells[1].querySelector('input').value;
+                const status = row.cells[6].querySelector('select').value;
+
+                if (status === 'Want to read' || status === 'TBR') {
+                    tbrBooks.push({ title, author });
+                }
+            });
+
+            // 2. If the list is empty, tell the user
+            if (tbrBooks.length === 0) {
+                alert("Your TBR list is empty! Add some books to your library first.");
+                return;
+            }
+
+            // 3. Pick one book at random
+            const randomIndex = Math.floor(Math.random() * tbrBooks.length);
+            const chosenBook = tbrBooks[randomIndex];
+
+            // 4. Show it in a fun popup!
+            // We can reuse your beautiful custom popup style for this
+            showSurprisePopup(chosenBook.title, chosenBook.author);
+        }
+
+        // Helper to show the Surprise Popup
+        function showSurprisePopup(title, author) {
+            // We will create a simple popup on the fly
+            const modal = document.createElement('div');
+            modal.id = "surpriseModal";
+            modal.style = "position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center;";
+            
+            modal.innerHTML = `
+                <div style="background-color: #fdfaf6; padding: 40px; border: 4px solid #443024; border-radius: 25px; width: 400px; text-align: center; box-shadow: 0 15px 40px rgba(0,0,0,0.4);">
+                    <h2 style="color: #933b5b; font-size: 28px; margin-top: 0;">🎲 Your Next Adventure...</h2>
+                    <hr style="border: 1px solid #eee; margin: 20px 0;">
+                    <h3 style="font-size: 24px; color: #443024; margin-bottom: 10px;">${title}</h3>
+                    <p style="font-size: 18px; color: #8B5E3C; margin-bottom: 30px;">by ${author}</p>
+                    <button onclick="this.parentElement.parentElement.remove()" 
+                            style="background-color: #443024; color: white; border: none; padding: 12px 30px; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 16px;">
+                        Happy Reading!
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        // THE TROPHY MAGIC: Unlocks medals based on your monthly reading progress
+        function updateTrophies() {
+            const rows = document.querySelectorAll('#libraryTableBody tr');
+            
+            // 1. Get the current Month and Year
+            const now = new Date();
+            const currentMonth = (now.getMonth() + 1).toString().padStart(2, '0'); // e.g., "04"
+            const currentYear = now.getFullYear().toString(); // e.g., "2026"
+            // This displays the month and year in the Trophy Case
+            const monthName = now.toLocaleString('default', { month: 'long' });
+            document.getElementById('currentMonthDisplay').textContent = `(${monthName}, ${currentYear})`;
+
+
+            let finishedThisMonth = 0;
+
+            // 2. Count how many books have a 'Finished' date in this specific month
+            rows.forEach(row => {
+                const status = row.cells[6].querySelector('select').value;
+                const finishedDate = row.cells[5].querySelector('input').value; // YYYY-MM-DD
+
+                if (status === 'Read' && finishedDate) {
+                    const [year, month] = finishedDate.split('-');
+                    if (year === currentYear && month === currentMonth) {
+                        finishedThisMonth++;
+                    }
+                }
+            });
+
+            // 3. Unlock Trophies based on the count
+            // Bronze = 3 books, Silver = 5 books, Gold = 10 books
+            const bronze = document.getElementById('trophy-bronze');
+            const silver = document.getElementById('trophy-silver');
+            const gold = document.getElementById('trophy-gold');
+            const msg = document.getElementById('trophyMessage');
+
+            // Reset them to faded first
+            bronze.style.opacity = "0.15";
+            silver.style.opacity = "0.15";
+            gold.style.opacity = "0.15";
+
+            // Light them up if goal is met!
+            if (finishedThisMonth >= 7) bronze.style.opacity = "1";
+            if (finishedThisMonth >= 12) silver.style.opacity = "1";
+            if (finishedThisMonth >= 20) gold.style.opacity = "1";
+
+            // Update the message
+            if (finishedThisMonth === 0) {
+                msg.textContent = "Start your first book of the month to unlock your trophies!";
+            } else if (finishedThisMonth < 7) {
+                msg.textContent = `You've read ${finishedThisMonth} books this month. ${7 - finishedThisMonth} more to Bronze!`;
+            } else if (finishedThisMonth < 20) {
+                msg.textContent = `Amazing! You've read ${finishedThisMonth} books. Keep going for the next trophy!`;
+            } else {
+                msg.textContent = "🏆 Master Reader! You've unlocked all the trophies for this month!";
+            }
+        }
+
+                function populateMonthlyYearFilters() {
+            const yearSelect = document.getElementById('favGalleryYear');
+            if (!yearSelect) return; 
+
+            const currentYear = new Date().getFullYear();
+            yearSelect.innerHTML = ''; 
+
+            for (let y = 2025; y <= currentYear; y++) {
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.textContent = y;
+                yearSelect.appendChild(opt);
+            }
+        }
+
+        // 2. DISPLAY MAGIC: Shows the book and author for the selected month
+        function displaySavedMonthlyWinners() {
+            const year = document.getElementById('favGalleryYear').value;
+            const month = document.getElementById('favGalleryMonth').value;
+            const display = document.getElementById('monthlyWinnerDisplay');
+
+            const saved = localStorage.getItem(`winner_${year}_${month}`);
+
+           if (!saved) {
+    // Special messages for Jan-June 2025
+    if (year === '2025' && parseInt(month) >= 1 && parseInt(month) <= 6) {
+        display.innerHTML = `<p style="color: #8B5E3C; font-style: italic;">My inner bookworm was still loading... 📚</p>`;
+        return;
+    }
+    
+    // Check if you read ANY books that month
+    const rows = document.querySelectorAll('#libraryTableBody tr');
+    let hadBooksThisMonth = false;
+    
+    rows.forEach(row => {
+        const finishedDate = row.cells[5].querySelector('input').value;
+        const status = row.cells[6].querySelector('select').value;
+        
+        if (status === 'Read' && finishedDate) {
+            const [y, m] = finishedDate.split('-');
+            if (y === year && m === month) {
+                hadBooksThisMonth = true;
+            }
+        }
+    });
+    
+    if (hadBooksThisMonth) {
+        display.innerHTML = `<p style="color: #8B5E3C; font-style: italic;">No favorites this month—nothing made the cut 🤷</p>`;
+    } else {
+        display.innerHTML = `<p style="color: #8B5E3C; font-style: italic;">The bookworm was hibernating… 🐛</p>`;
+    }
+    return;
+}
+
+            const data = JSON.parse(saved);
+            const imgUrl = data.isbn ? `https://books.google.com/books/content?vid=ISBN:${data.isbn}&printsec=frontcover&img=1&zoom=1` : "";
+// Check if user selected "No Favorite"
+if (data.title === "NO_FAVORITE") {
+    display.innerHTML = `<p style="color: #8B5E3C; font-style: italic;">No favorites this month—nothing made the cut 🤷</p>`;
+    return;
+}
+                            // Book Winner (Part of displaySavedMonthlyWinners)
+                display.innerHTML = `
+                    <div style="flex: 1; text-align: center;">
+                        <p style="font-size: 11px; font-weight: bold; color: #8B5E3C; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;">Book of the Month</p>
+                        
+                        <div id="monthlyBookCoverFrame" style="margin: 0 auto; width: 120px; height: 180px;">
+                            <img id="monthlyBookCoverImg" src="${imgUrl}" 
+                                 style="width: 120px; height: 180px; border-radius: 8px; border: 2px solid #443024; box-shadow: 0 5px 15px rgba(0,0,0,0.1); object-fit: cover;" 
+                                 onerror="showMonthlyPlaceholder(this, '${data.title}')">
+                        </div>
+
+                        <p style="font-weight: bold; margin-top: 12px; margin-bottom: 2px; font-size: 16px; color: #443024;">${data.title}</p>
+                        <p style="color: #e31b23; font-size: 14px;">${data.rating} ⭐</p>
+                    </div>
+
+                    <!-- Author Winner (the rest of the code remains the same) -->
+                    <div style="flex: 1; text-align: center; border-left: 1px solid #eee; padding-left: 20px;">
+                        <p style="font-size: 11px; font-weight: bold; color: #8B5E3C; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;">Author of the Month</p>
+                        <div style="width: 100px; height: 100px; border-radius: 50%; background: #e3d6bf; margin: 0 auto; display: flex; align-items: center; justify-content: center; border: 3px solid #933b5b; font-size: 40px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">✍️</div>
+                        <p style="font-weight: bold; margin-top: 15px; font-size: 18px;">${data.author}</p>
+                    </div>
+                `;
+        }
+        // This draws the creative placeholder for the Monthly Favorite book
+        function showMonthlyPlaceholder(imgElement, title) {
+            const frame = imgElement.parentElement;
+            frame.innerHTML = `
+                <div class="book-cover-placeholder" style="margin: 0 auto; width: 120px; height: 180px; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #e3d6bf; border: 2px solid #443024; border-radius: 8px;">
+                    <span style="font-size: 65px; margin-bottom: 10px;">📖</span>
+                    <div style="width: 40px; height: 2px; background: #443024; opacity: 0.3;"></div>
+                </div>
+            `;
+        }
+
+        // THE MISSION MAGIC: Checks if a new month has started
+              function checkMonthlyMission() {
+            const now = new Date();
+            let prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const year = prevMonthDate.getFullYear().toString();
+            const month = (prevMonthDate.getMonth() + 1).toString().padStart(2, '0');
+            const monthName = prevMonthDate.toLocaleString('default', { month: 'long' });
+
+            const missionBox = document.getElementById('missionInlineContainer');
+            if (!missionBox) return;
+
+            // If we ALREADY saved a winner, keep the mission box hidden
+            if (localStorage.getItem(`winner_${year}_${month}`)) {
+                missionBox.style.display = 'none';
+                return;
+            }
+
+            // Find books from that month
+            const rows = document.querySelectorAll('#libraryTableBody tr');
+            let booksForMission = [];
+            let authorMap = {}; 
+
+            rows.forEach(row => {
+                const finishedDateInput = row.cells[5].querySelector('input');
+                const statusSelect = row.cells[6].querySelector('select');
+                if (statusSelect.value === 'Read' && finishedDateInput.value) {
+                    const [y, m] = finishedDateInput.value.split('-');
+                    if (y === year && m === month) {
+                        const title = row.cells[0].querySelector('input').value;
+                        const author = row.cells[1].querySelector('input').value;
+                        const isbn = row.cells[2].querySelector('input').value;
+                        const rating = row.dataset.rating || "0";
+                        booksForMission.push({ title, author, isbn, rating });
+                        if (!authorMap[author]) authorMap[author] = [];
+                        authorMap[author].push(title);
+                    }
+                }
+            });
+
+            if (booksForMission.length > 0) {
+                document.getElementById('missionTitle').textContent = `Choose your favorites for ${monthName} ${year}`;
+                const bPicker = document.getElementById('missionBookPicker');
+                const aPicker = document.getElementById('missionAuthorPicker');
+
+                bPicker.innerHTML = '<option value="">-- Choose Book --</option>';
+                booksForMission.forEach(b => {
+                    bPicker.options.add(new Option(`${b.title} (${b.rating} ⭐)`, JSON.stringify(b)));
+                });
+
+                aPicker.innerHTML = '<option value="">-- Choose Author --</option>';
+                for (let auth in authorMap) {
+                    aPicker.options.add(new Option(`${auth} (${authorMap[auth].join(', ')})`, auth));
+                }
+                aPicker.options.add(new Option("I didn't have any favorites this month", "NO_FAVORITE"));
+
+
+                missionBox.style.display = 'block'; // Show it below the Gallery!
+                window.currentMissionDate = { year, month };
+            }
+        }
+
+        // This function runs when you hit the "Save & Locked In" button
+       function saveMissionChoice() {
+    const bVal = document.getElementById('missionBookPicker').value;
+    const aVal = document.getElementById('missionAuthorPicker').value;
+
+    if (!bVal || !aVal) return alert("Please select both a favorite book and author!");
+
+    const { year, month } = window.currentMissionDate;
+
+    // Check if user selected "No Favorite"
+    if (aVal === "NO_FAVORITE") {
+        const noFavData = {
+            title: "NO_FAVORITE",
+            author: "NO_FAVORITE",
+            isbn: "",
+            rating: "0"
+        };
+        localStorage.setItem(`winner_${year}_${month}`, JSON.stringify(noFavData));
+        document.getElementById('missionInlineContainer').style.display = 'none';
+        displaySavedMonthlyWinners();
+        alert("Got it! No favorites for this month.");
+        return;
+    }
+
+    const bookData = JSON.parse(bVal);
+    const winnerData = {
+        title: bookData.title,
+        author: aVal,
+        isbn: bookData.isbn,
+        rating: bookData.rating
+    };
+
+    localStorage.setItem(`winner_${year}_${month}`, JSON.stringify(winnerData));
+    
+    document.getElementById('missionInlineContainer').style.display = 'none';
+    displaySavedMonthlyWinners(); // Refresh the gallery box
+    alert("Mission accomplished! Your favorites are now in the gallery.");
+}
+// Function to get all books from local storage
+function getAllBooks() {
+    const savedBooks = localStorage.getItem('myBookData');
+    return savedBooks ? JSON.parse(savedBooks) : [];
+}
+
+// PASTE THE NEW TOOL HERE:
+function getPersonalSummary(bookTitle) {
+    const savedSummaries = localStorage.getItem('myBookSummaries');
+    if (!savedSummaries) return null;
+    
+    const summaries = JSON.parse(savedSummaries);
+    const allBooks = getAllBooks(); 
+    
+    // Find the book in our library first to see who the author is
+    const libraryBook = allBooks.find(b => b.Title.toLowerCase().includes(bookTitle.toLowerCase()));
+    const libraryAuthor = libraryBook ? libraryBook.Author.toLowerCase() : "";
+
+    // 1. Try to find a match for "Title|Author"
+    const exactKey = `${bookTitle.toLowerCase()}|${libraryAuthor}`;
+    if (summaries[exactKey]) return summaries[exactKey];
+
+    // 2. If no author match, look for just the title inside our list of keys
+    const foundKey = Object.keys(summaries).find(key => {
+        const [savedTitle] = key.split('|');
+        return savedTitle === bookTitle.toLowerCase();
+    });
+
+    return foundKey ? summaries[foundKey] : null;
+}
+
+// Function to analyze library
+async function analyzeLibrary(query) {
+    const books = getAllBooks();
+    const cleanQuery = query.toLowerCase().replace(/[–—\-"']/g, "").trim();
+
+       // --- 1. AUTHOR LOOKUP (e.g., "Who wrote The Deal?") ---
+    if (cleanQuery.includes('who wrote') || cleanQuery.includes('author of')) {
+        // We remove the question words AND the question mark "?"
+        let bookTitle = cleanQuery
+            .replace('who wrote', '')
+            .replace('author of', '')
+            .replace('who is the', '')
+            .replace('?', '') // This is the new part that throws away the "?"
+            .trim();
+
+        const book = books.find(b => b.Title.toLowerCase().replace(/[–—\-"']/g, "").includes(bookTitle));
+        
+        if (book) return `"${book.Title}" was written by ${book.Author}.`;
+        return `I couldn't find a book called "${bookTitle}" in your library.`;
+    }
+
+    // --- 2. LONGEST/SHORTEST (e.g., "What is my longest book?") ---
+    if (cleanQuery.includes('longest') || cleanQuery.includes('shortest') || cleanQuery.includes('most pages')) {
+        const readBooks = books.filter(b => b.Pages > 0);
+        if (readBooks.length === 0) return "I don't have page counts for your books yet!";
+        
+        readBooks.sort((a, b) => b.Pages - a.Pages); // Sort by pages
+        const winner = cleanQuery.includes('shortest') ? readBooks[readBooks.length - 1] : readBooks[0];
+        return `Your ${cleanQuery.includes('shortest') ? 'shortest' : 'longest'} book is "${winner.Title}" with ${winner.Pages} pages.`;
+    }
+
+    // --- BUSIEST TIME (Year, Month, or Week) ---
+    if (cleanQuery.includes('most') && (cleanQuery.includes('read') || cleanQuery.includes('books')) && 
+       (cleanQuery.includes('year') || cleanQuery.includes('month') || cleanQuery.includes('week'))) {
+        
+        const counts = {};
+        const readBooks = books.filter(b => b.Status === 'Read' && b.Finished);
+
+        if (readBooks.length === 0) return "I can't find any finished books with dates recorded!";
+
+        readBooks.forEach(book => {
+            const date = new Date(book.Finished);
+            const year = date.getFullYear();
+            const monthName = date.toLocaleString('default', { month: 'long' });
+            
+            let label = "";
+            if (cleanQuery.includes('year')) {
+                label = year.toString();
+            } else if (cleanQuery.includes('month')) {
+                label = `${monthName} ${year}`;
+            } else if (cleanQuery.includes('week')) {
+                // Calculation to find the week number (1st, 2nd, etc.)
+                const day = date.getDate();
+                const weekNum = Math.ceil(day / 7);
+                const suffixes = ["st", "nd", "rd", "th", "th"];
+                const weekLabel = weekNum + suffixes[weekNum - 1];
+                label = `the ${weekLabel} week of ${monthName}, ${year}`;
+            }
+
+            counts[label] = (counts[label] || 0) + 1;
+        });
+
+        // Find the winner
+        let winner = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+        let count = counts[winner];
+
+        if (cleanQuery.includes('year')) return `Your busiest year was ${winner}, when you read ${count} books! 🏆`;
+        if (cleanQuery.includes('month')) return `Your busiest month was ${winner}, when you read ${count} books! 📚`;
+        return `Your busiest week was ${winner}, when you read ${count} books! 🔥`;
+    }
+
+
+        // --- 3. MOST READ (Quantity: Who did I read the MOST books by?) ---
+    if (cleanQuery.includes('most') && (cleanQuery.includes('books') || cleanQuery.includes('read')) && cleanQuery.includes('author')) {
+        const authorCounts = {};
+        const booksWithAuthors = books.filter(b => b.Author && b.Author.trim() !== "");
+        if (booksWithAuthors.length === 0) return "I don't see any authors in your library yet!";
+
+        booksWithAuthors.forEach(b => { 
+            authorCounts[b.Author] = (authorCounts[b.Author] || 0) + 1; 
+        });
+
+        let topAuthor = Object.keys(authorCounts).reduce((a, b) => authorCounts[a] > authorCounts[b] ? a : b);
+        return `You have read the most books by ${topAuthor} (${authorCounts[topAuthor]} books).`;
+    }
+
+        // --- 4. TOP RATED (Quality: Best stars) ---
+    // We added 'highest overall ratings' and 'highest ratings' to this list
+    if (cleanQuery.includes('top author') || cleanQuery.includes('favorite author') || 
+        cleanQuery.includes('best author') || cleanQuery.includes('highest overall ratings') || 
+        cleanQuery.includes('highest ratings')) {
+        
+        const authorStats = {}; 
+        const ratedBooks = books.filter(b => b.Author && parseFloat(b.Rating) > 0);
+        
+        if (ratedBooks.length === 0) return "You haven't given enough ratings yet for me to find your top-rated author!";
+
+        ratedBooks.forEach(b => {
+            if (!authorStats[b.Author]) {
+                authorStats[b.Author] = { totalStars: 0, bookCount: 0 };
+            }
+            authorStats[b.Author].totalStars += parseFloat(b.Rating);
+            authorStats[b.Author].bookCount += 1;
+        });
+
+        let bestAuthor = "";
+        let highestAvg = 0;
+
+        for (let author in authorStats) {
+            let avg = authorStats[author].totalStars / authorStats[author].bookCount;
+            if (avg > highestAvg) {
+                highestAvg = avg;
+                bestAuthor = author;
+            }
+        }
+
+        return `The author you've given the highest overall ratings to is ${bestAuthor}, with an average of ${highestAvg.toFixed(2)} stars! 🌟`;
+    }
+
+    // --- 4. AVERAGE RATING (e.g., "What is my average rating?") ---
+    if (cleanQuery.includes('average rating')) {
+        const ratedBooks = books.filter(b => parseFloat(b.Rating) > 0);
+        if (ratedBooks.length === 0) return "You haven't rated any books yet!";
+        const avg = ratedBooks.reduce((sum, b) => sum + parseFloat(b.Rating), 0) / ratedBooks.length;
+        return `Your average rating across ${ratedBooks.length} books is ${avg.toFixed(2)} stars.`;
+    }
+
+    // --- 5. TIME TO READ (e.g., "How long did it take to read The Deal?") ---
+    if (cleanQuery.includes('how long did it take') || cleanQuery.includes('days to read')) {
+        let bookTitle = cleanQuery.replace('how long did it take to read', '').replace('days to read', '').trim();
+        const book = books.find(b => b.Title.toLowerCase().includes(bookTitle) && b.Started && b.Finished);
+        if (book) {
+            const start = new Date(book.Started);
+            const end = new Date(book.Finished);
+            const diff = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+            return `It took you ${diff} days to read "${book.Title}".`;
+        }
+        return "I need both a Start and Finish date to calculate that!";
+    }
+
+    // --- 6. DATE/MONTH SEARCH (e.g., "When did I read The Deal?" or "Books in March") ---
+    const months = { 'january':'01','february':'02','march':'03','april':'04','may':'05','june':'06','july':'07','august':'08','september':'09','october':'10','november':'11','december':'12','jan':'01','feb':'02','mar':'03','apr':'04','jun':'06','jul':'07','aug':'08','sep':'09','oct':'10','nov':'11','dec':'12' };
+    let foundMonth = Object.keys(months).find(m => cleanQuery.includes(m));
+    let yearMatch = cleanQuery.match(/(\d{4})/);
+
+    if (cleanQuery.includes('when did i') || cleanQuery.includes('finished date')) {
+        let bookTitle = cleanQuery.replace('when did i read', '').replace('when did i finish', '').trim();
+        const book = books.find(b => b.Title.toLowerCase().replace(/[–—\-"']/g, "").includes(bookTitle) && b.Status === 'Read');
+        if (book) return book.Finished ? `You finished "${book.Title}" on ${book.Finished}.` : `"${book.Title}" is marked Read, but has no date.`;
+    }
+
+    if (foundMonth && yearMatch) {
+        const mNum = months[foundMonth];
+        const count = books.filter(b => b.Finished && b.Finished.split('-')[0] === yearMatch[1] && b.Finished.split('-')[1] === mNum).length;
+        return `You read ${count} books in ${foundMonth.charAt(0).toUpperCase() + foundMonth.slice(1)} ${yearMatch[1]}.`;
+    }
+
+    // --- 7. BASIC COUNTS (Status & Total) ---
+    if (cleanQuery.includes('how many books') || cleanQuery.includes('total')) {
+        const statusMap = { 'want to read': 'Want to read', 'currently reading': 'Currently reading', 'dnf': 'DNF', 'tbr': 'TBR', 'read': 'Read' };
+        for (let key in statusMap) {
+            if (cleanQuery.includes(key)) return `You have ${books.filter(b => b.Status === statusMap[key]).length} books marked as "${statusMap[key]}".`;
+        }
+        return `You have ${books.length} books in total.`;
+    }
+
+    // --- 8. PAGE COUNTS ---
+    if (cleanQuery.includes('total pages') || cleanQuery.includes('how many pages')) {
+        const total = books.reduce((sum, b) => sum + (parseInt(b.Pages) || 0), 0);
+        return `You have read ${total.toLocaleString()} pages in total!`;
+    }
+    // --- SUMMARIES (e.g. "What is The Deal about?" or "Tell me about Throttled") ---
+    if (cleanQuery.includes('about') || cleanQuery.includes('tell me about') || cleanQuery.includes('what is') || cleanQuery.includes('summary')) {
+        // We tell the brain to wait while the librarian looks for the book
+        return await findBookByTitle(cleanQuery);
+    }
+
+    return "I'm not sure how to answer that yet. Try asking about authors, longest books, page totals, or average ratings!";
+}
+
+// Modify sendChatMessage to use analyzeLibrary
+async function sendChatMessage() {
+    const input = document.getElementById('chat-input');
+    const messageContainer = document.getElementById('chat-messages');
+    const userMessage = input.value.trim();
+
+    if (!userMessage) return;
+
+    // Show your message in the chat
+    const userMsgDiv = document.createElement('div');
+    userMsgDiv.innerHTML = `<div style="text-align: right; margin-bottom: 10px;">
+        <span style="background-color: #933b5b; color: white; padding: 10px; border-radius: 10px; display: inline-block; max-width: 70%;">${userMessage}</span>
+    </div>`;
+    messageContainer.appendChild(userMsgDiv);
+
+    input.value = ''; // Clear the box
+
+    // Let the brain analyze the original message
+    // We added "await" here because the brain might be searching the internet
+    const assistantResponse = await analyzeLibrary(userMessage);
+    const flavoredResponse = addLibrarianPersonality(assistantResponse);
+
+
+    const assistantMsgDiv = document.createElement('div');
+    assistantMsgDiv.style.textAlign = 'left';
+    assistantMsgDiv.style.marginBottom = '10px';
+
+    // CHECK: Does the response ask us to add a summary?
+    if (typeof assistantResponse === 'string' && assistantResponse.includes('[ADD_SUMMARY_BUTTON:')) {
+        const bookName = assistantResponse.split(':')[1].replace(']', '');
+        
+        assistantMsgDiv.innerHTML = `
+            <span style="background-color: #ec9c9d; color: #443024; padding: 10px; border-radius: 10px; display: inline-block; max-width: 70%;">
+                I don't have a summary for **${bookName}** yet.
+                <br><br>
+                <button onclick="promptForSummary('${bookName}')" style="background:#443024; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">
+                    ✍️ Add Personal Summary
+                </button>
+            </span>
+        `;
+    } else {
+        assistantMsgDiv.innerHTML = `
+            <span style="background-color: #ec9c9d; color: #443024; padding: 10px; border-radius: 10px; display: inline-block; max-width: 70%;">
+                ${flavoredResponse.toString().replace(/\n/g, '<br>')}
+            </span>
+        `;
+    }
+
+    messageContainer.appendChild(assistantMsgDiv);
+    messageContainer.scrollTop = messageContainer.scrollHeight;
+}
+
+// This listens for when you press a key while typing in the chat box
+document.getElementById('chat-input').addEventListener('keydown', function(event) {
+    // If the key you pressed is "Enter"...
+    if (event.key === 'Enter') {
+        // Prevent the page from jumping or doing anything else
+        event.preventDefault();
+        // ...run the sendChatMessage function!
+        sendChatMessage();
+    }
+});
+
+async function findBookByTitle(query) {
+    const books = getAllBooks();
+    
+    // 1. Clean the name (we added more words like 'the book' and removed the '?')
+    let bookTitle = query.toLowerCase()
+        .replace('tell me about', '')
+        .replace('what is', '')
+        .replace('summary of', '')
+        .replace('whats', '')
+        .replace('about', '')
+        .replace('the book', '') // We added this
+        .replace('?', '')        // We added this to remove question marks
+        .trim();
+
+    // 2. Check your Personal Memory
+    const personalNote = getPersonalSummary(bookTitle);
+    if (personalNote) {
+        return `📝 **Your Summary:**\n"${personalNote}"`;
+    }
+
+    // 3. Search the Internet (Google Books)
+    try {
+        const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(bookTitle)}`);
+        const data = await response.json();
+        
+        if (data.items && data.items.length > 0) {
+            const volumeInfo = data.items[0].volumeInfo;
+            let description = volumeInfo.description;
+            
+            if (description) {
+                const cleanDesc = description.replace(/<[^>]*>/g, '');
+                return `🌐 **Google Summary:**\n${cleanDesc.substring(0, 500)}...`;
+            }
+        }
+    } catch (e) { 
+        console.log("Internet search failed", e); 
+    }
+
+    // 4. THE UPDATED MESSAGE: Simple and clean
+    return `I couldn't find a summary for "${bookTitle}". Would you like to add one yourself?\n\n[ADD_SUMMARY_BUTTON:${bookTitle}]`;
+}
+
+
+
+function findBooksByAuthor(query) {
+    const books = getAllBooks();
+    const authorName = query.toLowerCase().replace('books by ', '');
+    
+    const matchedBooks = books.filter(book => 
+        book.Author.toLowerCase().includes(authorName)
+    );
+
+    if (matchedBooks.length === 0) {
+        return `No books found by an author with "${authorName}" in their name.`;
+    }
+
+    return `I found ${matchedBooks.length} books by authors matching "${authorName}":\n` + 
+           matchedBooks.map(book => `• ${book.Title}`).join('\n');
+}
+function promptForSummary(bookTitle) {
+    const text = prompt(`What is "${bookTitle}" about?`);
+    if (text) {
+        const savedSummaries = localStorage.getItem('myBookSummaries') ? JSON.parse(localStorage.getItem('myBookSummaries')) : {};
+        savedSummaries[bookTitle] = text;
+        localStorage.setItem('myBookSummaries', JSON.stringify(savedSummaries));
+        alert("Summary saved! I'll remember this next time you ask.");
+    }
+}
+// This function reads your CSV and saves summaries + authors into memory
+function importSummariesFromCSV(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const csvText = e.target.result;
+        const rows = csvText.split('\n').filter(r => r.trim() !== '');
+        
+        // We look at the first row to find Title, Summary, and Author columns
+        const header = rows[0].split(',').map(h => h.trim().toLowerCase().replace(/^"|"$/g, ''));
+        const titleIndex = header.indexOf('title');
+        const summaryIndex = header.indexOf('summary');
+        const authorIndex = header.indexOf('author');
+
+        if (titleIndex === -1 || summaryIndex === -1) {
+            alert("Your CSV must have 'Title' and 'Summary' columns!");
+            return;
+        }
+
+        const savedSummaries = localStorage.getItem('myBookSummaries') ? JSON.parse(localStorage.getItem('myBookSummaries')) : {};
+
+        rows.slice(1).forEach(row => {
+            // This complex line helps read CSVs even if they have commas inside quotes
+            const columns = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, ''));
+            const title = columns[titleIndex];
+            const summary = columns[summaryIndex];
+            const author = authorIndex !== -1 ? columns[authorIndex] : ""; 
+
+            if (title && summary) {
+                // We save it as "title|author" to keep it unique
+                const uniqueKey = `${title.toLowerCase()}|${author.toLowerCase()}`;
+                savedSummaries[uniqueKey] = summary;
+            }
+        });
+
+        localStorage.setItem('myBookSummaries', JSON.stringify(savedSummaries));
+        alert("Success! Your old summaries have been added to my memory.");
+    };
+    reader.readAsText(file);
+}
+// This function adds a friendly "Librarian" touch to the answers
+function addLibrarianPersonality(answer) {
+    const greetings = [
+        "Oh, let Bookerella look that up for you...",
+        "I've checked your magical shelves and found this:",
+        "Greetings! Bookerella has the answer right here:",
+        "According to my library records...",
+        "Bookerella found it! ✨"
+    ];
+
+    const closings = [
+        "📚 Happy reading!",
+        "✨ Hope that helps!",
+        "📖 Your collection is looking lovely today.",
+        "☕ Time to get cozy with a book?",
+        "🌟"
+    ];
+
+    // Pick a random greeting and closing
+    const randomGreet = greetings[Math.floor(Math.random() * greetings.length)];
+    const randomClose = closings[Math.floor(Math.random() * closings.length)];
+
+    return `${randomGreet}\n\n${answer}\n\n${randomClose}`;
+}
+let html5QrCode;
+
+function toggleScanner() {
+    const container = document.getElementById('scanner-container');
+    const btn = document.getElementById('scanBtn');
+
+    if (container.style.display === 'block') {
+        // STOP
+        if (html5QrCode) {
+            html5QrCode.stop().then(() => {
+                container.style.display = 'none';
+                btn.textContent = "📷 Scan Barcode";
+                btn.style.backgroundColor = "#933b5b";
+            });
+        }
+    } else {
+        // START
+        container.style.display = 'block';
+        btn.textContent = "🛑 Stop Scanner";
+        btn.style.backgroundColor = "#443024";
+        startNewScanner();
+    }
+}
+
+function startNewScanner() {
+    html5QrCode = new Html5Qrcode("reader");
+    const config = { 
+        fps: 10, 
+        qrbox: { width: 250, height: 150 }, // This draws a "Target Box" for the barcode
+        aspectRatio: 1.333334
+    };
+
+    html5QrCode.start(
+        { facingMode: "environment" }, 
+        config,
+        (decodedText) => {
+            // SUCCESS!
+            console.log("Scan result:", decodedText);
+            // We stop the camera immediately
+            toggleScanner();
+            // Beep or Alert
+            alert("Book Found! ISBN: " + decodedText);
+            // Look up the book
+            lookupByISBN(decodedText);
+        },
+        (errorMessage) => {
+            // This just means it hasn't seen a barcode yet, ignore it
+        }
+    ).catch((err) => {
+        console.error("Camera error:", err);
+    });
+}
+
+function startScanner() {
+    Quagga.init({
+        inputStream: {
+            name: "Live",
+            type: "LiveStream",
+            target: document.querySelector('#interactive'),
+            constraints: {
+                width: 640,
+                height: 480,
+                facingMode: "environment" 
+            },
+        },
+        locator: {
+            patchSize: "medium",
+            halfSample: true
+        },
+        numOfWorkers: 4, // Uses more of your laptop's "brain" power
+        frequency: 10,   // Scans 10 times per second
+        decoder: {
+            // We added more readers just in case the book uses a different format
+            readers: ["ean_reader", "ean_8_reader", "code_128_reader", "upc_reader"] 
+        },
+        locate: true
+    }, function (err) {
+        if (err) { console.log(err); return; }
+        Quagga.start();
+    });
+
+    Quagga.onDetected(function (result) {
+        // We add a "Consistency Check" so it doesn't accidentally read a wrong number
+        const code = result.codeResult.code;
+        
+        // ISBNs are usually 13 digits long and start with 97
+        if (code.length >= 10) {
+            toggleScanner();
+            lookupByISBN(code);
+        }
+    });
+}
+
+        </script>
+
+    <!-- ALL POPUPS SIT AT THE BOTTOM OUTSIDE THE TABS -->
+    <div id="lookupModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center;">
+        <div style="background-color: #f6eeee; padding: 30px; border: 3px solid #443024; border-radius: 20px; width: 400px; text-align: center;">
+            <h2 id="modalBookTitle">Found Book!</h2>
+            <p id="modalBookAuthor"></p><p id="modalBookPages"></p><p id="modalBookISBN"></p>
+            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                <button id="confirmAddBtn" style="background-color: #443024; color: white; border: none; padding: 12px 20px; border-radius: 10px; cursor: pointer;">Add to Library</button>
+                <button onclick="closeModal()" style="background-color: white; border: 2px solid #443024; padding: 12px 20px; border-radius: 10px; cursor: pointer;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="duplicateModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center;">
+        <div style="background-color: #f6eeee; padding: 30px; border: 3px solid #443024; border-radius: 20px; width: 500px; text-align: center; max-height: 80vh; overflow-y: auto;">
+            <h2>⚠️ Duplicates Found!</h2>
+            <div id="duplicateList" style="text-align: left; margin: 20px 0; max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 15px; border-radius: 10px; background-color: white;"></div>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button id="addSelectedBtn" onclick="addSelectedDuplicates()" style="background-color: #443024; color: white; border: none; padding: 12px 20px; border-radius: 10px; cursor: pointer;">Add Selected</button>
+                <button onclick="discardAllDuplicates()" style="background-color: white; border: 2px solid #443024; padding: 12px 20px; border-radius: 10px; cursor: pointer;">Discard All</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="master-book-tag" class="book-tooltip" style="display:none; position:fixed;"></div>
+
+</body>
+</html>
