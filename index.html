@@ -1020,6 +1020,15 @@ Reset Everything</button>
         </button>
     </div>
 </div>
+<!-- TEMP: Import old summaries -->
+<div id="temp-summary-import" style="margin-top: 20px; text-align: center; border-top: 1px solid #ddd; padding-top: 15px;">
+    <p style="font-size: 12px; color: #8B5E3C; margin-bottom: 8px;">Have an old list of summaries?</p>
+    <button onclick="document.getElementById('summaryCsvInput').click()" style="background: white; border: 1px dashed #933b5b; color: #933b5b; padding: 8px 15px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: bold;">
+        📥 Import Old Summaries (.csv)
+    </button>
+    <input type="file" id="summaryCsvInput" accept=".csv" style="display: none;" onchange="importSummariesFromCSV(event)">
+</div>
+
 </div> <!-- 🏁 END OF READING ASSISTANT TAB SECTION 🏁 -->
 
 
@@ -3060,7 +3069,6 @@ function importSummariesFromCSV(event) {
         const csvText = e.target.result;
         const rows = csvText.split('\n').filter(r => r.trim() !== '');
         
-        // We look at the first row to find Title, Summary, and Author columns
         const header = rows[0].split(',').map(h => h.trim().toLowerCase().replace(/^"|"$/g, ''));
         const titleIndex = header.indexOf('title');
         const summaryIndex = header.indexOf('summary');
@@ -3074,14 +3082,12 @@ function importSummariesFromCSV(event) {
         const savedSummaries = localStorage.getItem('myBookSummaries') ? JSON.parse(localStorage.getItem('myBookSummaries')) : {};
 
         rows.slice(1).forEach(row => {
-            // This complex line helps read CSVs even if they have commas inside quotes
             const columns = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, ''));
             const title = columns[titleIndex];
             const summary = columns[summaryIndex];
-            const author = authorIndex !== -1 ? columns[authorIndex] : ""; 
+            const author = authorIndex !== -1 ? columns[authorIndex] : "";
 
             if (title && summary) {
-                // We save it as "title|author" to keep it unique
                 const uniqueKey = `${title.toLowerCase()}|${author.toLowerCase()}`;
                 savedSummaries[uniqueKey] = summary;
             }
