@@ -2724,28 +2724,58 @@ function getAllBooks() {
 }
 
 // PASTE THE NEW TOOL HERE:
-function getPersonalSummary(bookTitle) {
+function getPersonalSummary(bookTitleFromQuestion) {
     const savedSummaries = localStorage.getItem('myBookSummaries');
     if (!savedSummaries) return null;
     
     const summaries = JSON.parse(savedSummaries);
-    const allBooks = getAllBooks(); 
-    
-    // Find the book in our library first to see who the author is
-    const libraryBook = allBooks.find(b => b.Title.toLowerCase().includes(bookTitle.toLowerCase()));
-    const libraryAuthor = libraryBook ? libraryBook.Author.toLowerCase() : "";
+    const allBooks = getAllBooks();
 
-    // 1. Try to find a match for "Title|Author"
-    const exactKey = `${bookTitle.toLowerCase()}|${libraryAuthor}`;
+    const queryTitle = (bookTitleFromQuestion || "").toLowerCase().trim();
+
+    // 1. Try to find the best matching book in YOUR library by title
+    //    e.g. query: "collided"   library: "Collided (Dirty Air #3)"
+    let libraryBook = allBooks.find(b => 
+        b.Title && b.Title.toLowerCase().includes(queryTitle)
+    );
+
+    // If that didn't work (maybe you asked with full subtitle), try reverse contains
+    if (!libraryBook) {
+        libraryBook = allBooks.find(b => {
+            const t = (b.Title || "").toLowerCase();
+            return queryTitle.includes(t) && t.length > 0;
+        });
+    }
+
+    // If we still didn't find anything, we fall back to searching just by saved titles
+    if (!libraryBook) {
+        const looseKey = Object.keys(summaries).find(key => {
+            const [savedTitle] = key.split('|');
+            const st = savedTitle.toLowerCase();
+            return st.includes(queryTitle) || queryTitle.includes(st);
+        });
+        return looseKey ? summaries[looseKey] : null;
+    }
+
+    const libTitle = (libraryBook.Title || "").toLowerCase();
+    const libAuthor = (libraryBook.Author || "").toLowerCase();
+
+    // 2. First try exact "title|author" key (most precise)
+    const exactKey = `${libTitle}|${libAuthor}`;
     if (summaries[exactKey]) return summaries[exactKey];
 
-    // 2. If no author match, look for just the title inside our list of keys
-    const foundKey = Object.keys(summaries).find(key => {
+    // 3. Then try "title|" (in case CSV had no author)
+    const titleOnlyKey = `${libTitle}|`;
+    if (summaries[titleOnlyKey]) return summaries[titleOnlyKey];
+
+    // 4. Last resort: any saved title that roughly matches the library title
+    const fuzzyKey = Object.keys(summaries).find(key => {
         const [savedTitle] = key.split('|');
-        return savedTitle === bookTitle.toLowerCase();
+        const st = savedTitle.toLowerCase();
+        return st.includes(libTitle) || libTitle.includes(st);
     });
 
-    return foundKey ? summaries[foundKey] : null;
+    return fuzzyKey ? summaries[fuzzyKey] : null;
 }
 
 // Function to analyze library
