@@ -6,6 +6,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Delius&display=swap" rel="stylesheet">
    <script src="https://unpkg.com/html5-qrcode"></script>
 
+<script>
+    // Simple test: is Html5Qrcode defined?
+    if (typeof Html5Qrcode === 'undefined') {
+        alert('Scanner library failed to load.');
+    }
+</script>
     
     <style>
         * { font-family: 'Delius', cursive !important; box-sizing: border-box; color: #443024; }
